@@ -13,6 +13,19 @@ The project demonstrates the complete SOC lifecycle, including log collection, e
 
 Rather than focusing solely on tool installation, the project emphasizes understanding how modern SOC teams detect, analyze, investigate, and respond to cyber threats in a controlled enterprise environment.
 
+---
+
+## Network Architecture
+
+The lab simulates a small enterprise environment deployed on a VirtualBox NAT Network (`10.0.10.0/24`). It includes a centralized Splunk SIEM server, an Active Directory Domain Controller, a Windows 11 target endpoint, and a Kali Linux attacker machine.
+
+Windows endpoint telemetry is generated through Sysmon and forwarded to Splunk using the Splunk Universal Forwarder. Kali Linux and Atomic Red Team are used to generate controlled attack activity, while external Threat Intelligence services enrich suspicious indicators during investigations.
+
+![Enterprise SOC Lab Network Architecture](docs/architecture/network-diagram.png)
+
+*Figure 1 — Enterprise SOC Lab network architecture and security data flow.*
+---
+
 ##  Project Scope
 
 ### Included
