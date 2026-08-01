@@ -13,7 +13,6 @@ The laboratory recreates a small enterprise environment composed of an Active Di
 The project demonstrates the complete SOC lifecycle, including log collection, endpoint telemetry, attack simulation, detection engineering, threat hunting, threat intelligence enrichment, incident investigation, and technical documentation.
 
 Rather than focusing solely on tool installation, the project emphasizes understanding how modern SOC teams detect, analyze, investigate, and respond to cyber threats in a controlled enterprise environment.
----
 
 ##  Project Scope
 
