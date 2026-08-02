@@ -22,10 +22,6 @@ Five dedicated indexes were created to organize security data based on its sourc
 
 Using dedicated indexes improves data organization, search performance, and simplifies detection engineering.
 
-### Screenshot
-
-> Insert Screenshot: **splunk-indexes.png**
-
 ![](../../screenshots/infrastructure/splunk-indexes.png)
 
 ---
@@ -35,10 +31,6 @@ Using dedicated indexes improves data organization, search performance, and simp
 Splunk was configured to listen on TCP port **9997**.
 
 This port is used by the Splunk Universal Forwarder to securely transmit logs from monitored endpoints.
-
-### Screenshot
-
-> Insert Screenshot: **splunk-port-9997.png**
 
 ![](../../screenshots/infrastructure/splunk-port-9997.png)
 
@@ -55,10 +47,6 @@ Verified sourcetypes include:
 - WinEventLog:Application
 - XmlWinEventLog
 
-### Screenshot
-
-> Insert Screenshot: **splunk-sourcetypes.png**
-
 ![](../../screenshots/infrastructure/splunk-sourcetypes.png)
 
 ---
@@ -68,10 +56,6 @@ Verified sourcetypes include:
 The Splunk server, Windows Server, Windows 11 workstation, and Kali Linux attacker machine were configured to use the **Africa/Casablanca** timezone.
 
 Time synchronization is essential for accurate event correlation during security investigations.
-
-### Screenshot
-
-> Insert Screenshot: **timezone.png**
 
 ![](../../screenshots/infrastructure/timezone.png)
 
@@ -87,10 +71,6 @@ License information:
 - Daily ingestion limit: **500 MB**
 - License status: Active
 
-### Screenshot
-
-> Insert Screenshot: **splunk-license.png**
-
 ![](../../screenshots/infrastructure/splunk-license.png)
 
 ---
@@ -101,10 +81,6 @@ License information:
 
 The Sysmon service was verified to ensure that endpoint telemetry collection is active.
 
-### Screenshot
-
-> Insert Screenshot: **sysmon-service.png**
-
 ![](../../screenshots/infrastructure/sysmon-service.png)
 
 ---
@@ -114,10 +90,6 @@ The Sysmon service was verified to ensure that endpoint telemetry collection is 
 The SwiftOnSecurity configuration was successfully applied.
 
 This configuration enables detailed endpoint telemetry while reducing unnecessary events.
-
-### Screenshot
-
-> Insert Screenshot: **sysmon-config.png**
 
 ![](../../screenshots/infrastructure/sysmon-config.png)
 
@@ -130,10 +102,6 @@ Sysmon events were successfully generated inside:
 ```
 Microsoft-Windows-Sysmon/Operational
 ```
-
-### Screenshot
-
-> Insert Screenshot: **sysmon-operational-log.png**
 
 ![](../../screenshots/infrastructure/sysmon-operational-log.png)
 
@@ -156,23 +124,17 @@ The following Event IDs were successfully generated and verified.
 
 ### Event ID 1
 
-> Insert Screenshot: **event-id-1.png**
-
 ![](../../screenshots/infrastructure/event-id-1.png)
 
 ---
 
 ### Event ID 3
 
-> Insert Screenshot: **event-id-3.png**
-
 ![](../../screenshots/infrastructure/event-id-3.png)
 
 ---
 
 ### Event ID 22
-
-> Insert Screenshot: **event-id-22.png**
 
 ![](../../screenshots/infrastructure/event-id-22.png)
 
