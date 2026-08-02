@@ -1,30 +1,27 @@
 # SOC Lab Architecture
 
-## 1. Architecture Overview
+1. Architecture Overview
 
-## 2. Design Objectives
+2. Design Objectives
 
-## 3. Network Configuration
+3. Network Topology
 
-## 4. Lab Components
+4. Components
 
-### 4.1 Splunk SIEM Server
-### 4.2 Active Directory Domain Controller
-### 4.3 Windows 11 Target Endpoint
-### 4.4 Kali Linux Attacker Machine
+   4.1 Splunk Server
 
-## 5. Endpoint Telemetry
+   4.2 Windows Server (AD)
 
-## 6. Log and Data Flow
+   4.3 Windows 11
 
-## 7. Attack Simulation Flow
+   4.4 Kali Linux
 
-## 8. Threat Intelligence Flow
+5. Data Flow
 
-## 9. Network Ports and Protocols
+6. Security Monitoring Workflow
 
-## 10. Architecture Security Considerations
+7. Network Ports
 
-## 11. Design Limitations
+8. Design Decisions
 
-## 12. Verification Criteria
+9. Current Limitations
