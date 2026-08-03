@@ -181,7 +181,7 @@ The forwarded Windows and Sysmon events were successfully received and indexed b
 ![](../../screenshots/infrastructure/logs-received-splunk.png)
 
 ---
-# 3. Validation Summary
+# 4. Validation Summary
 
 | Component | Status |
 |----------|--------|
@@ -198,7 +198,7 @@ The forwarded Windows and Sysmon events were successfully received and indexed b
 
 ---
 
-# 4. Lessons Learned
+# 5. Lessons Learned
 
 - Splunk indexes should be separated according to the type of collected telemetry.
 - TCP port 9997 is the standard receiving port for Splunk Universal Forwarders.
