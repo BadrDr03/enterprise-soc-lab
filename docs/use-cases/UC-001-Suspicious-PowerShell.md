@@ -29,8 +29,6 @@ index=windows EventCode=1 Image="*powershell.exe" CommandLine="*Bypass*"
 | table _time User ParentImage CommandLine ComputerName
 ```
 
-### Screenshot
-
 ![](../../screenshots/infrastructure/queryresult.png)
 
 ---
@@ -42,8 +40,6 @@ The following command was executed on the monitored Windows endpoint.
 ```powershell
 powershell.exe -ExecutionPolicy Bypass
 ```
-
-### Screenshot
 
 ![](../../screenshots/infrastructure/testcommand.png)
 
