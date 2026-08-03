@@ -140,6 +140,47 @@ The following Event IDs were successfully generated and verified.
 
 ---
 
+# 3. Universal Forwarder Deployment
+
+## 3.1 Deployment
+
+The Splunk Universal Forwarder was installed on the monitored Windows endpoint to forward Windows Event Logs and Sysmon telemetry to the central Splunk SIEM.
+
+---
+
+## 3.2 Configuration
+
+The Universal Forwarder was configured to forward logs to:
+
+- Splunk Server: `10.0.10.10`
+- Receiving Port: `9997`
+
+The following log sources were enabled:
+
+- Windows Security
+- Windows System
+- Windows Application
+- Microsoft-Windows-Sysmon/Operational
+
+![](../../screenshots/infrastructure/forwarder-config.png)
+
+---
+
+## 3.3 Service Validation
+
+The `SplunkForwarder` service was verified and confirmed to be running successfully.
+
+![](../../screenshots/infrastructure/splunkforwarder-service.png)
+
+---
+
+## 3.4 Log Validation
+
+The forwarded Windows and Sysmon events were successfully received and indexed by the Splunk server.
+
+![](../../screenshots/infrastructure/logs-received-splunk.png)
+
+---
 # 3. Validation Summary
 
 | Component | Status |
