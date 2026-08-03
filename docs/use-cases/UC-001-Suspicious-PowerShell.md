@@ -31,7 +31,7 @@ index=windows EventCode=1 Image="*powershell.exe" CommandLine="*Bypass*"
 
 ### Screenshot
 
-![](../../screenshots/infrastructure/UC-001-queryresult.png)
+![](../../screenshots/infrastructure/queryresult.png)
 
 ---
 
@@ -45,7 +45,7 @@ powershell.exe -ExecutionPolicy Bypass
 
 ### Screenshot
 
-![](../../screenshots/infrastructure/UC-001-testcommand.png)
+![](../../screenshots/infrastructure/testcommand.png)
 
 ---
 
