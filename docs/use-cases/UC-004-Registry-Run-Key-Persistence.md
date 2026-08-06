@@ -118,6 +118,23 @@ A Registry Run Key was created to automatically launch an executable at user log
 
 ---
 
+## Detection Logic
+
+This detection is based on persistence behavior rather than only process execution.
+
+Instead of detecting every execution of **reg.exe**, the rule focuses on registry modifications to the Windows Run Key.
+
+Detection Indicators:
+
+- Process: reg.exe
+- Event ID: 13 (Registry Value Set)
+- Registry Path: HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+- Registry Value: Atomic Red Team
+
+This approach reduces false positives and provides a more reliable detection of persistence activity.
+
+---
+
 ## Analyst Conclusion
 
 Splunk successfully detected the Registry Run Key modification through Sysmon Event ID 13.
