@@ -16,7 +16,7 @@ Detect system information discovery activity performed on a Windows endpoint usi
 
 ## Attack Description
 
-The attacker executed the Atomic Red Team test **T1082-1** to collect information about the target operating system.
+An Atomic Red Team test (T1082-1) was executed in a controlled laboratory environment to simulate system information discovery activity.
 
 The attack executed the `systeminfo.exe` command to retrieve details about the operating system, hardware, installed updates, and system configuration.
 
