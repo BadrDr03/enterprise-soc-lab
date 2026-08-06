@@ -121,6 +121,8 @@ During this laboratory, the activity was intentionally generated using Atomic Re
 
 In a production environment, repeated or unexpected execution of system discovery commands should be investigated because they may indicate attacker reconnaissance before lateral movement or privilege escalation.
 
+The analyst should also verify the parent process, execution context, user account, and correlate this event with other discovery activities before determining malicious intent.
+
 ---
 
 ## Detection Status
