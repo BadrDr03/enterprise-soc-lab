@@ -32,7 +32,7 @@ The attack executed the `systeminfo.exe` command to retrieve details about the o
 
 ```spl
 index=windows EventCode=1 Image="*systeminfo.exe"
-| table _time User ComputerName ParentImage Image CommandLine
+| table _time ComputerName User ParentImage Image CommandLine
 ```
 
 ---
