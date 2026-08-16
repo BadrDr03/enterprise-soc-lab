@@ -69,7 +69,7 @@ This reduced the amount of data and allowed authentication-related events to be 
 
 > **Screenshot to use:** Splunk Statistics table showing EventCodes such as `5379`, `4624`, `4672`, `4648`, etc. with their event counts.
 
-![Security EventCode Triage](../../screenshots/UC-007/security-eventcode-triage.png)
+![Security EventCode Triage](../../screenshots/detections/security-eventcode-triage.png)
 
 The Security investigation identified successful logon activity. However, the expected failed authentication events were not confirmed in the collected Security telemetry.
 
