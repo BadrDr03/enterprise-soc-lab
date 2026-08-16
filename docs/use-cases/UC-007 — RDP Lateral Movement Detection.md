@@ -111,7 +111,7 @@ This event provides network-level evidence that the source system initiated comm
 
 > **Screenshot to use:** screenshot showing `EventCode=131` with the message `The server accepted a new TCP connection from client 10.0.10.7`.
 
-![RDP TCP Connection Event 131](../../screenshots/UC-007-rdp-event-131.png)
+![RDP TCP Connection Event 131](../../screenshots/detections/UC-007-rdp-event-131.png)
 
 ---
 
@@ -145,7 +145,7 @@ This provided evidence that the account successfully authenticated to the Remote
 
 > **Screenshot to use:** screenshot showing `EventCode=1149`, `User authentication succeeded`, User `Administrator`, Domain `BADR`, and Source Network Address `10.0.10.7`.
 
-![RDP Authentication Event 1149](../../screenshots/UC-007-rdp-event-1149.png)
+![RDP Authentication Event 1149](../../screenshots/detections/UC-007-rdp-event-1149.png)
 
 ---
 
