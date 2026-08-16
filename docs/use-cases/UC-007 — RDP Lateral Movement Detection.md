@@ -2,9 +2,9 @@
 
 ## Objective
 
-Detect and investigate Remote Desktop Protocol (RDP) activity between two Windows systems by correlating multiple Windows event sources in Splunk.
+Detect and investigate Remote Desktop Protocol (RDP) activity between two Windows systems by correlating RDP network connection and authentication telemetry in Splunk.
 
-The objective is not to classify every successful RDP connection as malicious, but to determine whether the remote access is legitimate or potentially related to lateral movement.
+The objective is not to classify every RDP connection as malicious. Instead, the analyst must identify the source, destination, user, time, and context of the remote access to determine whether it represents legitimate administrative activity or potential lateral movement.
 
 ---
 
@@ -18,44 +18,51 @@ The objective is not to classify every successful RDP connection as malicious, b
 
 ## Lab Scenario
 
-An RDP connection was initiated from the Active Directory server toward the Windows 11 workstation.
+An RDP connection was initiated from the Active Directory Domain Controller (ADDC) toward the Windows 11 workstation.
 
 | Role | Host | IP Address |
 |---|---|---|
-| Source | ADDC | 10.0.10.7 |
-| Target | target-pc | 10.0.10.20 |
-| Account | BADR\Administrator | — |
+| Source | ADDC | `10.0.10.7` |
+| Target | target-pc | `10.0.10.20` |
+| Account | `BADR\Administrator` | — |
 
-Two incorrect password attempts were performed before the successful authentication as part of the simulation.
+Two incorrect passwords were intentionally entered before the correct credentials were used.
 
-However, the failed authentication attempts were not confirmed in the collected Security telemetry. Therefore, the investigation focuses only on the RDP connection, authentication, and session evidence that was successfully verified in Splunk.
+The failed authentication attempts were not confirmed in the telemetry collected by Splunk. Therefore, they are not used as detection evidence in this use case.
+
+The investigation focuses only on events that were directly observed and verified in Splunk.
 
 ---
 
 ## Data Sources
 
-The investigation used multiple Windows event channels:
+The primary RDP telemetry used in this investigation came from two Windows event channels:
 
-- `WinEventLog:Security`
 - `Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational`
 - `Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational`
-- `Microsoft-Windows-TerminalServices-LocalSessionManager/Operational`
 
-Using multiple data sources allows the analyst to correlate network connection, authentication, and session activity instead of relying on a single event.
+These sources provide two complementary types of evidence:
+
+| Event ID | Data Source | Purpose |
+|---|---|---|
+| `131` | RdpCoreTS | Identifies the incoming RDP network connection |
+| `1149` | RemoteConnectionManager | Identifies successful RDP user authentication |
+
+Windows Security logs were also reviewed during the initial investigation, but they did not provide the expected failed authentication evidence for this specific lab scenario.
 
 ---
 
 ## Initial Investigation
 
-The investigation started with Windows Security logs on `target-pc`.
+The investigation initially started with the Windows Security logs on `target-pc`.
 
-A broad search generated hundreds of events:
+A broad Splunk search returned hundreds of events:
 
 ```spl
 index=windows host="target-pc" earliest=-1h source="WinEventLog:Security"
 ```
 
-Instead of manually reviewing every event, the Security events were grouped by `EventCode`:
+Instead of manually reviewing every event, the events were grouped by EventCode:
 
 ```spl
 index=windows host="target-pc" earliest=-1h source="WinEventLog:Security"
@@ -63,264 +70,196 @@ index=windows host="target-pc" earliest=-1h source="WinEventLog:Security"
 | sort -count
 ```
 
-This reduced the amount of data and allowed authentication-related events to be identified more efficiently.
+This reduced the volume of information and made it easier to identify the types of Security events generated during the investigation.
 
 ### Detection Evidence — Security EventCode Triage
 
-> **Screenshot to use:** Splunk Statistics table showing EventCodes such as `5379`, `4624`, `4672`, `4648`, etc. with their event counts.
+> **Screenshot to use:** the Splunk Statistics table showing Security EventCodes such as `5379`, `4624`, `4672`, `4648`, and their respective counts.
 
-![Security EventCode Triage](../../screenshots/detections/security-eventcode-triage.png)
+![Security EventCode Triage](../../screenshots/detections/UC-007-security-eventcode-triage.png)
 
-The Security investigation identified successful logon activity. However, the expected failed authentication events were not confirmed in the collected Security telemetry.
+The expected failed authentication Event ID `4625` was not observed in the collected Security telemetry.
 
-This demonstrated that relying only on the Security log was not sufficient to reconstruct the complete RDP activity.
-
----
-
-## RDP Telemetry Investigation
-
-The investigation was expanded to Windows Remote Desktop Services event channels.
-
-This provided more specific telemetry related to the RDP connection.
+Instead of assuming that no RDP activity occurred, the investigation pivoted to RDP-specific Windows event channels.
 
 ---
 
-## RDP Network Connection
+## RDP Network Connection Detection
 
-### Event ID 131 — RdpCoreTS
+The `Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational` channel provided network-level evidence of the RDP connection.
 
-The `Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational` channel recorded the incoming RDP network connection.
+### Event ID 131 — Incoming RDP Connection
 
-Event ID `131` showed that the server accepted a new connection from:
+Event ID `131` recorded that `target-pc` accepted a connection from the ADDC server.
 
-```text
-10.0.10.7
-```
-
-This address corresponds to the ADDC server.
-
-Example message:
+The observed message contained:
 
 ```text
 The server accepted a new TCP connection from client 10.0.10.7.
 ```
 
-This event provides network-level evidence that the source system initiated communication with the Remote Desktop service on the target.
-
-### Detection Evidence — Event 131
-
-> **Screenshot to use:** screenshot showing `EventCode=131` with the message `The server accepted a new TCP connection from client 10.0.10.7`.
-
-![RDP TCP Connection Event 131](../../screenshots/detections/UC-007-rdp-event-131.png)
-
----
-
-## RDP Authentication
-
-### Event ID 1149 — RemoteConnectionManager
-
-The `Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational` channel provided authentication evidence.
-
-Event ID `1149` recorded a successful RDP authentication.
-
-Observed information:
-
-| Field | Value |
-|---|---|
-| User | Administrator |
-| Domain | BADR |
-| Source Network Address | 10.0.10.7 |
-| Target | target-pc |
-| Result | Authentication succeeded |
-
-The event message confirmed:
-
-```text
-Remote Desktop Services: User authentication succeeded
-```
-
-This provided evidence that the account successfully authenticated to the Remote Desktop service from the ADDC server.
-
-### Detection Evidence — Event 1149
-
-> **Screenshot to use:** screenshot showing `EventCode=1149`, `User authentication succeeded`, User `Administrator`, Domain `BADR`, and Source Network Address `10.0.10.7`.
-
-![RDP Authentication Event 1149](../../screenshots/detections/UC-007-rdp-event-1149.png)
-
----
-
-## RDP Session Creation
-
-### Event ID 21 — LocalSessionManager
-
-The `Microsoft-Windows-TerminalServices-LocalSessionManager/Operational` channel provided evidence that the authenticated user successfully obtained an RDP session.
-
-Event ID `21` recorded:
-
-```text
-Remote Desktop Services: Session logon succeeded
-```
-
-Observed information:
-
-| Field | Value |
-|---|---|
-| User | BADR\Administrator |
-| Session ID | 2 |
-| Source Network Address | 10.0.10.7 |
-| Target | target-pc |
-
-This event confirms that the authenticated account successfully established a Remote Desktop session.
-
-### Detection Evidence — Event 21
-
-> **Screenshot to use:** screenshot showing `EventCode=21`, `Session logon succeeded`, User `BADR\Administrator`, Session ID `2`, and Source Network Address `10.0.10.7`.
-
-![RDP Session Logon Event 21](../../screenshots/UC-007/rdp-event-21.png)
-
----
-
-## RDP Shell Start
-
-### Event ID 22 — LocalSessionManager
-
-Event ID `22` provided additional evidence that the RDP session progressed beyond authentication and session creation.
-
-The event recorded:
-
-```text
-Remote Desktop Services: Shell start notification received
-```
-
-This indicates that the Windows shell associated with the remote session was started.
-
-### Detection Evidence — Event 22
-
-> **Screenshot to use:** screenshot showing `EventCode=22` with `Remote Desktop Services: Shell start notification received`.
-
-![RDP Shell Start Event 22](../../screenshots/UC-007/rdp-event-22.png)
-
----
-
-## Event Correlation
-
-After identifying the relevant RDP telemetry, the events were investigated together using Splunk.
-
-```spl
-index=windows host="target-pc" earliest=-3h
-(EventCode=131 OR EventCode=1149 OR EventCode=21 OR EventCode=22)
-| table _time EventCode source User Source_Network_Address Message
-| sort _time
-```
-
-The query brings together several stages of the RDP activity:
-
-```text
-RdpCoreTS Event 131
-        |
-        v
-RemoteConnectionManager Event 1149
-        |
-        v
-LocalSessionManager Event 21
-        |
-        v
-LocalSessionManager Event 22
-```
-
-The events represent different stages of the remote connection:
-
-| Event ID | Data Source | Meaning |
-|---|---|---|
-| 131 | RdpCoreTS | RDP network connection |
-| 1149 | RemoteConnectionManager | RDP user authentication succeeded |
-| 21 | LocalSessionManager | RDP session logon succeeded |
-| 22 | LocalSessionManager | Remote session shell started |
-
-### Detection Evidence — Correlation Search
-
-> **Screenshot to use:** Splunk correlation table showing `_time`, `EventCode`, `source`, `User`, `Source_Network_Address`, and `Message`, including Event `131` and `1149` activity from `10.0.10.7`.
-
-![RDP Event Correlation](../../screenshots/UC-007/rdp-correlation.png)
-
----
-
-## Correlation Analysis
-
-An important observation during the investigation was that not every Event ID `21` or `22` returned by the search belonged to the investigated RDP connection.
-
-Some events showed:
-
-```text
-Source Network Address: LOCAL
-```
-
-and were associated with a different user/session.
-
-These events should not be correlated with the ADDC-to-target-pc RDP activity.
-
-Therefore, correlation must not rely only on Event IDs.
-
-The analyst should correlate using multiple attributes:
-
-- Timestamp
-- Source IP address
-- User account
-- Target host
-- Event source
-- Session information
-- Event message/context
-
-For the investigated RDP activity, the primary remote source was:
+The source address:
 
 ```text
 10.0.10.7
 ```
 
-which corresponds to the ADDC server.
+corresponds to the ADDC server.
 
-This demonstrates why contextual correlation is important in SOC investigations.
+This event confirms that a remote connection from ADDC reached the Remote Desktop service on `target-pc`.
+
+### Detection Evidence — Event ID 131
+
+> **Screenshot to use:** the screenshot showing `EventCode=131` from `Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational`, with the message indicating that the server accepted a new TCP connection from client `10.0.10.7`.
+
+![RdpCoreTS Event 131](../../screenshots/detections/UC-007-rdp-event-131.png)
+
+---
+
+## RDP Authentication Detection
+
+After identifying the incoming connection, the investigation pivoted to:
+
+```text
+Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational
+```
+
+### Event ID 1149 — Successful RDP Authentication
+
+Event ID `1149` recorded successful authentication to the Remote Desktop service.
+
+The event contained the following information:
+
+| Field | Value |
+|---|---|
+| Event ID | `1149` |
+| User | `Administrator` |
+| Domain | `BADR` |
+| Source Network Address | `10.0.10.7` |
+| Target Host | `target-pc` |
+| Authentication Result | Successful |
+
+The message recorded:
+
+```text
+Remote Desktop Services: User authentication succeeded
+```
+
+This provides authentication-level evidence that the `Administrator` account successfully authenticated from the ADDC server.
+
+### Detection Evidence — Event ID 1149
+
+> **Screenshot to use:** the screenshot showing `EventCode=1149`, the message `Remote Desktop Services: User authentication succeeded`, User `Administrator`, Domain `BADR`, and Source Network Address `10.0.10.7`.
+
+![RemoteConnectionManager Event 1149](../../screenshots/detections/UC-007-rdp-event-1149.png)
+
+---
+
+## Event Correlation
+
+A single event does not provide enough context to determine the complete activity.
+
+The RDP connection was therefore investigated by correlating Event IDs `131` and `1149`.
+
+The following Splunk query was used:
+
+```spl
+index=windows host="target-pc" earliest=-3h
+(EventCode=131 OR EventCode=1149)
+| table _time EventCode source User Source_Network_Address Message
+| sort _time
+```
+
+The investigation identified the following sequence:
+
+```text
+ADDC — 10.0.10.7
+        |
+        | RDP connection
+        v
++-----------------------------+
+| Event ID 131                |
+| RdpCoreTS                   |
+| TCP connection accepted     |
+| Source: 10.0.10.7           |
++-----------------------------+
+        |
+        v
++-----------------------------+
+| Event ID 1149               |
+| RemoteConnectionManager     |
+| Authentication succeeded    |
+| User: Administrator         |
+| Domain: BADR                |
+| Source: 10.0.10.7           |
++-----------------------------+
+        |
+        v
+target-pc — 10.0.10.20
+```
+
+Both events point to the same source system:
+
+```text
+10.0.10.7
+```
+
+and occur within the same RDP connection context.
+
+This provides stronger evidence than relying on either event independently.
+
+### Detection Evidence — Event Correlation
+
+> **Screenshot to use:** the Splunk table showing Event IDs `131` and `1149` close together in time. The screenshot should clearly show `_time`, `EventCode`, `source`, `User`, `Source_Network_Address`, and `Message`, with `10.0.10.7` visible.
+
+![RDP Event Correlation](../../screenshots/detections/UC-007-rdp-correlation.png)
 
 ---
 
 ## Detection Logic
 
-A successful RDP authentication alone should not automatically be classified as malicious.
+The detection logic is based on correlating network-level RDP activity with successful RDP authentication.
 
-RDP is commonly used by legitimate administrators and technicians.
-
-The detection logic therefore focuses on identifying remote RDP activity and providing enough context for an analyst to determine whether the activity is expected.
-
-The observed sequence can be represented as:
+The observed behavior can be represented as:
 
 ```text
-Remote system initiates connection
-              |
-              v
-RdpCoreTS Event 131
-Remote TCP connection observed
-              |
-              v
-RemoteConnectionManager Event 1149
-User authentication succeeded
-              |
-              v
-LocalSessionManager Event 21
-RDP session logon succeeded
-              |
-              v
-LocalSessionManager Event 22
-Remote session shell started
+Remote connection from an internal host
+                |
+                v
+RdpCoreTS Event ID 131
+Incoming RDP connection observed
+                |
+                v
+RemoteConnectionManager Event ID 1149
+RDP authentication succeeded
+                |
+                v
+Correlate:
+- Source IP
+- User
+- Target host
+- Timestamp
+                |
+                v
+Determine whether the activity is expected
 ```
+
+The presence of Event ID `131` followed by Event ID `1149` confirms remote RDP connection and successful authentication activity.
+
+However, this sequence alone does not prove malicious lateral movement.
+
+RDP is commonly used for legitimate system administration.
 
 The activity becomes more suspicious when additional contextual indicators are present, such as:
 
-- Unexpected source host
-- Unexpected administrative account
-- Unusual source-to-destination relationship
+- An unexpected source system
+- An unexpected administrative account
+- An unusual source-to-destination relationship
 - Remote access outside expected administrative activity
-- Remote access from a workstation that normally does not administer other endpoints
-- Suspicious activity occurring before or after the RDP session
+- RDP originating from a system that normally does not administer other endpoints
+- Suspicious activity occurring before or after the RDP connection
+
+Therefore, the detection identifies RDP activity requiring contextual validation rather than automatically classifying every successful RDP connection as an attack.
 
 ---
 
@@ -329,72 +268,88 @@ The activity becomes more suspicious when additional contextual indicators are p
 | Question | Finding |
 |---|---|
 | **Who?** | `BADR\Administrator` |
-| **What?** | Successful RDP connection from ADDC to target-pc |
+| **What?** | Successful RDP connection and authentication from ADDC to target-pc |
 | **When?** | 16/08/2026 around 18:00:24 |
 | **Where?** | Source: ADDC (`10.0.10.7`) → Target: target-pc (`10.0.10.20`) |
-| **Why?** | The remote access was investigated to determine whether it represented legitimate administrative activity or potential lateral movement |
+| **Why?** | The remote activity was investigated to determine whether it represented legitimate administrative access or potential lateral movement |
 | **How?** | Remote Desktop Protocol (RDP) |
 
 ---
 
 ## Failed Authentication Observation
 
-Two incorrect passwords were intentionally entered before the successful RDP authentication during the simulation.
+During the controlled simulation, two incorrect passwords were intentionally entered before the correct credentials were used.
 
-However, the investigation did not confirm corresponding Event ID `4625` events in the Security telemetry collected by Splunk.
+However, corresponding failed authentication events were not confirmed in the telemetry collected by Splunk.
 
-Because the failed authentication events were not verified, they are not used as detection evidence in this use case.
+In particular, the investigation did not identify Security Event ID `4625` corresponding to these failed RDP attempts.
 
-This represents an important SOC investigation principle:
+Because this evidence was not observed, the failed attempts are not included in the detection chain.
 
-> An analyst should distinguish between actions known to have occurred during a controlled simulation and actions that can actually be proven using collected telemetry.
+This demonstrates an important SOC investigation principle:
 
-The verified evidence in this investigation is therefore based on the successful RDP connection, authentication, and session activity.
+> Actions performed during a controlled simulation must be distinguished from actions that can actually be demonstrated using collected telemetry.
+
+The final investigation therefore relies only on verified evidence.
+
+---
+
+## Investigation Findings
+
+The following activity was confirmed:
+
+| Stage | Evidence | Finding |
+|---|---|---|
+| Network Connection | Event ID `131` | `target-pc` accepted an RDP-related connection from `10.0.10.7` |
+| Authentication | Event ID `1149` | `Administrator` successfully authenticated from `10.0.10.7` |
+| Correlation | Source IP + Time + Target | Both events were associated with the same RDP activity |
+
+The correlation allowed the activity to be reconstructed without relying on assumptions or unrelated Windows events.
 
 ---
 
 ## Analyst Conclusion
 
-The investigation identified RDP activity originating from the ADDC server (`10.0.10.7`) and targeting the Windows 11 workstation (`10.0.10.20`).
+The investigation identified Remote Desktop activity originating from the ADDC server (`10.0.10.7`) and targeting the Windows 11 workstation (`10.0.10.20`).
 
-Multiple Windows telemetry sources were required to reconstruct the activity.
+Two complementary Windows telemetry sources were used.
 
-RdpCoreTS provided network connection evidence, RemoteConnectionManager provided authentication evidence, and LocalSessionManager provided session-level evidence.
+`RdpCoreTS` Event ID `131` provided evidence that the target accepted an incoming RDP connection from `10.0.10.7`.
 
-The correlation demonstrated the following sequence:
+`RemoteConnectionManager` Event ID `1149` provided evidence that the `Administrator` account successfully authenticated from the same source address.
+
+The correlation therefore established the following verified sequence:
 
 ```text
 ADDC (10.0.10.7)
         |
-        | RDP
+        | Remote connection
+        v
+RdpCoreTS — Event 131
+        |
+        | Successful authentication
+        v
+RemoteConnectionManager — Event 1149
+        |
         v
 target-pc (10.0.10.20)
-        |
-        +--> RDP connection observed
-        |
-        +--> Authentication succeeded
-        |
-        +--> RDP session established
-        |
-        +--> Remote shell started
 ```
 
-Because the activity was intentionally generated in the lab, it represents a known simulation.
+Because this activity was intentionally generated as part of the SOC lab, it represents a known simulation.
 
-In a production SOC environment, the same successful RDP activity should not automatically be classified as an attack. The analyst must validate the user, source system, destination system, timing, and surrounding activity to determine whether the connection represents legitimate administration or potential lateral movement.
+In a production environment, the same RDP activity should not automatically be classified as malicious. A SOC analyst must validate the user, source system, destination system, time, and surrounding activity before determining whether the connection represents legitimate administration or potential lateral movement.
 
-This use case demonstrates the importance of multi-source telemetry, event correlation, and contextual analysis when investigating Remote Desktop activity.
+This use case demonstrates the importance of multi-source telemetry, event correlation, and contextual analysis when investigating remote access activity.
 
 ---
 
 ## Key Takeaways
 
-- A single successful RDP event is not sufficient to classify activity as malicious.
-- Different Windows event channels provide different stages of an RDP connection.
-- Event ID `131` provides network connection evidence.
-- Event ID `1149` provides successful RDP authentication evidence.
-- Event ID `21` provides successful RDP session logon evidence.
-- Event ID `22` provides remote shell/session evidence.
-- Event correlation should include time, user, source IP, destination, and session context.
-- Unrelated local events must not be incorrectly correlated with remote RDP activity.
-- Detection conclusions must be based on telemetry that was actually observed and verified.
+- RDP activity should not be classified as malicious based on a single event.
+- Event ID `131` can provide evidence of an incoming RDP network connection.
+- Event ID `1149` can provide evidence of successful RDP authentication.
+- Source IP, user, target host, and timestamp should be correlated during investigation.
+- Legitimate administrative RDP activity and malicious lateral movement can produce similar telemetry.
+- Context is required before assigning a malicious verdict.
+- Unverified events should not be included as confirmed detection evidence.
+- Missing expected telemetry can reveal visibility limitations in the monitoring environment.
