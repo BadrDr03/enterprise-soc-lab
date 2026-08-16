@@ -74,8 +74,6 @@ This reduced the volume of information and made it easier to identify the types 
 
 ### Detection Evidence — Security EventCode Triage
 
-> **Screenshot to use:** the Splunk Statistics table showing Security EventCodes such as `5379`, `4624`, `4672`, `4648`, and their respective counts.
-
 ![Security EventCode Triage](../../screenshots/detections/UC-007-security-eventcode-triage.png)
 
 The expected failed authentication Event ID `4625` was not observed in the collected Security telemetry.
@@ -109,8 +107,6 @@ corresponds to the ADDC server.
 This event confirms that a remote connection from ADDC reached the Remote Desktop service on `target-pc`.
 
 ### Detection Evidence — Event ID 131
-
-> **Screenshot to use:** the screenshot showing `EventCode=131` from `Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational`, with the message indicating that the server accepted a new TCP connection from client `10.0.10.7`.
 
 ![RdpCoreTS Event 131](../../screenshots/detections/UC-007-rdp-event-131.png)
 
@@ -148,8 +144,6 @@ Remote Desktop Services: User authentication succeeded
 This provides authentication-level evidence that the `Administrator` account successfully authenticated from the ADDC server.
 
 ### Detection Evidence — Event ID 1149
-
-> **Screenshot to use:** the screenshot showing `EventCode=1149`, the message `Remote Desktop Services: User authentication succeeded`, User `Administrator`, Domain `BADR`, and Source Network Address `10.0.10.7`.
 
 ![RemoteConnectionManager Event 1149](../../screenshots/detections/UC-007-rdp-event-1149.png)
 
