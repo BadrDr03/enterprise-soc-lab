@@ -157,7 +157,168 @@ Additional context such as the user, parent process, command line, execution tim
 
 ---
 
-## 6. Detection Result
+## 6. SOC Analysis – 5W1H
+
+After identifying the suspicious archive utility execution, the event was analyzed using the 5W1H methodology.
+
+### Who?
+
+The activity was executed by:
+
+```text
+BADR\Administrator
+```
+
+This identifies the user account responsible for launching the archive utility.
+
+### What?
+
+The Windows native utility `tar.exe` was executed to compress the contents of the collection directory into a ZIP archive.
+
+```text
+C:\SOC-Lab\Collection
+        ↓
+C:\SOC-Lab\collection.zip
+```
+
+The observed command line was:
+
+```text
+"C:\WINDOWS\system32\tar.exe" -a -c -f C:\SOC-Lab\collection.zip C:\SOC-Lab\Collection
+```
+
+### When?
+
+The activity was observed in Splunk at approximately:
+
+```text
+2026-08-17 16:52:20
+```
+
+The timestamp provided by Sysmon allows the analyst to establish the timeline and correlate this activity with other events occurring around the same period.
+
+### Where?
+
+The activity occurred on:
+
+```text
+Host: target-pc
+```
+
+The source data was located in:
+
+```text
+C:\SOC-Lab\Collection
+```
+
+and the resulting archive was created as:
+
+```text
+C:\SOC-Lab\collection.zip
+```
+
+### Why?
+
+The observed behavior is consistent with data staging or preparation for potential exfiltration.
+
+Compressing multiple collected files into a single archive can make data easier to transfer from a compromised endpoint.
+
+However, archive utilities such as `tar.exe` are legitimate administrative tools. Therefore, this event alone does not prove malicious activity and must be evaluated in context.
+
+### How?
+
+The activity was performed using the native Windows archive utility:
+
+```text
+C:\Windows\System32\tar.exe
+```
+
+The process was launched from:
+
+```text
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+```
+
+Sysmon Event ID 1 captured the process execution and its command-line arguments, which were then forwarded to Splunk for investigation.
+
+---
+
+## 7. Analyst Interpretation
+
+The execution of `tar.exe` is not inherently malicious because archive utilities are commonly used for legitimate administrative and user activities.
+
+The event became relevant during the investigation because several pieces of context were observed together:
+
+- `tar.exe` was executed from PowerShell.
+- Multiple files from the collection directory were targeted.
+- The command created a single ZIP archive.
+- The complete operation was visible in the process command line.
+- The behavior corresponds to archive preparation activity described by MITRE ATT&CK T1560.001.
+
+Therefore, the detection should be treated as **suspicious behavior requiring contextual investigation**, rather than automatically classified as malicious.
+
+---
+
+## 8. Investigation Summary
+
+The investigation followed a progressive narrowing approach.
+
+```text
+1,650 Process Creation Events
+        ↓
+120 Unique Process Images
+        ↓
+tar.exe identified
+        ↓
+Sysmon Event ID 1 investigated
+        ↓
+User + Parent Process + Command Line analyzed
+        ↓
+Archive creation behavior identified
+        ↓
+Mapped to MITRE ATT&CK T1560.001
+```
+
+This approach demonstrates that a SOC analyst does not need to manually inspect every raw event.
+
+Instead, the analyst reduces the dataset using relevant fields and behavioral context until the activity requiring investigation becomes visible.
+
+---
+
+## 9. Detection Result
+
+The activity was successfully detected through Sysmon process creation telemetry and investigated in Splunk.
+
+The final event provided the following evidence:
+
+| Field | Observed Value |
+|---|---|
+| Host | `target-pc` |
+| User | `BADR\Administrator` |
+| Process | `C:\Windows\System32\tar.exe` |
+| Parent Process | `powershell.exe` |
+| Source Directory | `C:\SOC-Lab\Collection` |
+| Archive | `C:\SOC-Lab\collection.zip` |
+| Sysmon Event ID | `1` |
+| MITRE ATT&CK | `T1560.001 – Archive via Utility` |
+
+The most important evidence was the command line because it revealed not only that `tar.exe` executed, but also **what data was targeted and where the resulting archive was created**.
+
+---
+
+## 10. Key Learning
+
+This use case demonstrated an important SOC principle:
+
+> The execution of a legitimate tool does not automatically indicate malicious activity. Detection requires context.
+
+The process name provided an initial lead, while the user, parent process, command line, target directory, and surrounding activity provided the context necessary to understand the behavior.
+
+It also demonstrated the importance of telemetry visibility: an action occurring on an endpoint can only be investigated from the SIEM when the appropriate data source captures and forwards the relevant evidence.
+
+---
+
+## 11. Detection Result
 
 The archive activity was successfully captured by Sysmon and forwarded to Splunk.
 
