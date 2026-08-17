@@ -37,11 +37,9 @@ internal.txt
 
 These files contain only dummy data created specifically for the isolated SOC lab.
 
-### Screenshot
+### Evidence
 
-![Dummy files prepared for collection](../../screenshots/detections/UC-008-dummy-files.png) 
-
-> **Screenshot to use:** PowerShell screenshot showing the `C:\SOC-Lab\Collection` directory containing `employees.txt`, `finance.txt`, and `internal.txt`.
+![Dummy files prepared for collection](../../screenshots/detections/UC-008-dummy-files.png)
 
 ---
 
@@ -49,10 +47,22 @@ These files contain only dummy data created specifically for the isolated SOC la
 
 The collected files were archived using the native Windows `tar.exe` utility.
 
-The command created a ZIP archive from the collection directory:
+The following command was executed:
 
 ```powershell
 tar.exe -a -c -f C:\SOC-Lab\collection.zip C:\SOC-Lab\Collection
+```
+
+The command creates a ZIP archive named:
+
+```text
+C:\SOC-Lab\collection.zip
+```
+
+from the files located in:
+
+```text
+C:\SOC-Lab\Collection
 ```
 
 Using a standalone archive utility generated process creation telemetry that could be observed through Sysmon and forwarded to Splunk.
@@ -61,7 +71,7 @@ Using a standalone archive utility generated process creation telemetry that cou
 
 ## 3. Initial SOC Investigation
 
-Instead of searching directly for `tar.exe`, the investigation started with a broader review of process creation events on the target host.
+Instead of searching directly for `tar.exe`, the investigation started with a broader review of process creation activity on the target endpoint.
 
 The following Splunk query was used:
 
@@ -81,26 +91,26 @@ C:\Windows\System32\tar.exe
 
 This provided a lead for further investigation.
 
-### Screenshot
+### Evidence
 
 ![Process execution narrowing](../../screenshots/detections/UC-008-process-narrowing.png)
-
-> **Screenshot to use:** Splunk screenshot showing the broad `stats count by Image` search with `tar.exe` visible among the process images.
 
 ---
 
 ## 4. Investigation of tar.exe
 
-The investigation was narrowed to Sysmon Process Creation events associated with `tar.exe`.
+The investigation was then narrowed to Sysmon Process Creation events associated specifically with `tar.exe`.
+
+The following Splunk query was used:
 
 ```spl
 index=windows host="target-pc" EventCode=1 Image="*\\tar.exe" earliest=-4h
 | table _time User Image CommandLine ParentImage
 ```
 
-The search returned a process creation event containing the execution context of the archive utility.
+The search returned a single relevant process creation event.
 
-Observed telemetry:
+The observed telemetry included:
 
 ```text
 User:
@@ -118,11 +128,9 @@ Command Line:
 
 The command-line telemetry shows that `tar.exe` was launched from PowerShell and used to create `collection.zip` from the `C:\SOC-Lab\Collection` directory.
 
-### Screenshot
+### Evidence
 
-![Archive creation detected in Splunk](../../screenshots/detections/UC-008-tar-process-creation.png)
-
-> **Screenshot to use:** Splunk screenshot showing the single `tar.exe` EventCode 1 event with `_time`, `User`, `Image`, `CommandLine`, and `ParentImage`.
+![tar.exe process creation detected in Splunk](../../screenshots/detections/UC-008-tar-process-creation.png)
 
 ---
 
@@ -130,7 +138,7 @@ The command-line telemetry shows that `tar.exe` was launched from PowerShell and
 
 The activity can be identified by monitoring process creation events for archive utilities and analyzing their command-line arguments.
 
-Example Splunk detection query:
+An example Splunk detection query is:
 
 ```spl
 index=windows EventCode=1
@@ -145,7 +153,7 @@ index=windows EventCode=1
 
 The execution of an archive utility alone should not automatically be considered malicious.
 
-Additional context such as the user, parent process, command line, source files, execution time, and surrounding activity should be investigated before determining whether the behavior is suspicious.
+Additional context such as the user, parent process, command line, execution time, source files, and surrounding activity should be investigated before determining whether the behavior is suspicious.
 
 ---
 
@@ -155,15 +163,15 @@ The archive activity was successfully captured by Sysmon and forwarded to Splunk
 
 Sysmon Event ID 1 provided the necessary telemetry to identify:
 
-- The archive utility used (`tar.exe`)
-- The account executing the process
-- The parent process (`powershell.exe`)
+- The archive utility used: `tar.exe`
+- The account executing the process: `BADR\Administrator`
+- The parent process: `powershell.exe`
 - The complete command line
-- The archive destination
-- The source directory being archived
+- The archive destination: `C:\SOC-Lab\collection.zip`
+- The source directory: `C:\SOC-Lab\Collection`
 - The execution timestamp
 
-This demonstrates how process creation telemetry can provide visibility into data staging and archive preparation activity before potential exfiltration.
+The investigation demonstrated how broad process telemetry can be progressively narrowed until the relevant archive activity is identified.
 
 ---
 
@@ -185,8 +193,10 @@ This demonstrates how process creation telemetry can provide visibility into dat
 
 ## Conclusion
 
-UC-008 successfully demonstrated the detection of archive creation activity on the Windows 11 endpoint.
+UC-008 successfully demonstrated the detection and investigation of archive creation activity on the Windows 11 endpoint.
 
 The investigation started from a broad set of process creation events and progressively narrowed the results until the relevant `tar.exe` execution was identified.
 
-The final Sysmon event provided sufficient process and command-line context in Splunk to associate the observed behavior with **MITRE ATT&CK T1560.001 – Archive via Utility**.
+The final Sysmon Event ID 1 provided the process, user, parent process, command-line, and timestamp context required to investigate the activity in Splunk.
+
+The observed behavior is consistent with **MITRE ATT&CK T1560.001 – Archive via Utility** and demonstrates how archive creation can be detected as part of data collection and staging activity.
