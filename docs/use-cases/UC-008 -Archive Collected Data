@@ -39,7 +39,7 @@ These files contain only dummy data created specifically for the isolated SOC la
 
 ### Screenshot
 
-![Dummy files prepared for collection](../../screenshots/detections/UC-008-dummy-files.png)
+![Dummy files prepared for collection](../../screenshots/detections/UC-008-dummy-files.png) 
 
 > **Screenshot to use:** PowerShell screenshot showing the `C:\SOC-Lab\Collection` directory containing `employees.txt`, `finance.txt`, and `internal.txt`.
 
