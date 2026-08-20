@@ -118,6 +118,134 @@ A Registry Run Key was created to automatically launch an executable at user log
 
 ---
 
+## 5W1H Analysis
+
+| Question | Analysis |
+|---|---|
+| **Who?** | `BADR\Administrator` |
+| **What?** | A new Registry Run Key value named `Atomic Red Team` was created to automatically execute an executable when the user logs on. |
+| **When?** | The activity occurred during the controlled UC-004 Atomic Red Team simulation and was captured by Sysmon Event ID 13. |
+| **Where?** | The modification occurred on `target-pc` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`. |
+| **Why?** | The modification was intentionally generated to simulate a common Windows persistence technique and validate SOC detection. |
+| **How?** | `reg.exe` modified the Registry Run Key and configured `C:\Path\AtomicRedTeam.exe` for automatic execution at user logon. |
+
+---
+
+## Splunk Detection Rule
+
+The validated detection logic was converted into a scheduled Splunk alert to automatically identify modifications to Windows Registry Run Keys.
+
+### Detection Query
+
+```spl
+index=windows EventCode=13
+TargetObject="*\\Software\\Microsoft\\Windows\\CurrentVersion\\Run*"
+| table _time ComputerName User Image TargetObject Details ProcessGuid
+| sort -_time
+```
+
+### Alert Configuration
+
+| Setting | Value |
+|---|---|
+| Alert Name | `UC-004 - Registry Run Key Persistence` |
+| Alert Type | Scheduled |
+| Schedule | Hourly, at 15 minutes past the hour |
+| Trigger Condition | Number of Results > 0 |
+| Trigger Action | Log Event |
+| Status | Enabled |
+
+### Alert Evidence
+
+![UC-004 Alert Configuration](../../screenshots/detections/UC-004-alert-configuration.png)
+
+![UC-004 Alert Created](../../screenshots/detections/UC-004-alert-created.png)
+
+The rule provides automated visibility into Registry Run Key modifications that may represent persistence activity.
+
+---
+
+## Containment
+
+Because this activity was generated during an authorized laboratory simulation, no emergency containment was required.
+
+In a real incident, an unexpected Registry Run Key modification would require additional investigation. If confirmed as malicious, containment actions could include:
+
+- Isolating the affected endpoint from the network.
+- Restricting the affected user account if compromise is suspected.
+- Preventing execution of the executable referenced by the Registry value.
+- Preserving the Registry value and associated telemetry as evidence before removal.
+
+---
+
+## Eradication
+
+Unlike the previous discovery simulations, this technique creates a persistent system modification. Therefore, the unauthorized Registry Run Key should be removed after evidence has been collected.
+
+For a confirmed malicious incident, eradication would include:
+
+- Removing the malicious Registry Run Key value.
+- Identifying and removing the executable referenced by the Registry value if malicious.
+- Investigating the process responsible for creating the persistence mechanism.
+- Searching other endpoints for the same Registry value or executable.
+- Resetting compromised credentials if required.
+
+In this laboratory, the Atomic Red Team cleanup procedure can be used to restore the environment after the persistence test.
+
+---
+
+## Recovery
+
+After removing the persistence mechanism:
+
+- Verify that the Registry Run Key no longer contains the unauthorized value.
+- Confirm that the referenced executable is no longer automatically launched at logon.
+- Verify that the endpoint remains operational.
+- Confirm that Sysmon and Splunk logging continue to function.
+- Return the endpoint to normal operation after validation.
+
+---
+
+## Post-Incident Activity
+
+### Lessons Learned
+
+- Registry Run Keys provide a legitimate Windows functionality but can also be abused for persistence.
+- Sysmon Event ID 13 provides visibility into Registry value modifications.
+- Monitoring the Registry path is more reliable than detecting only a specific process such as `reg.exe`.
+- Registry changes should be correlated with the user, process, executable path, and surrounding activity.
+- Persistence detection is important because it may reveal an attempt to maintain access after initial compromise.
+
+### Recommendations
+
+- Monitor modifications to Windows `Run` and `RunOnce` Registry locations.
+- Investigate unexpected executables referenced by Registry autorun entries.
+- Establish a baseline of legitimate startup applications.
+- Correlate persistence events with previous execution and authentication activity.
+- Search other endpoints for matching persistence indicators when malicious activity is confirmed.
+- Periodically review and tune the Splunk detection rule to reduce false positives.
+
+---
+
+## Final Incident Classification
+
+| Field | Result |
+|---|---|
+| Detection | Successful |
+| Investigation | Completed |
+| MITRE ATT&CK | `T1547.001 - Registry Run Keys / Startup Folder` |
+| Detection Rule | Enabled |
+| Containment | Not required – controlled simulation |
+| Eradication | Cleanup required to remove simulated persistence |
+| Recovery | Verify Registry state after cleanup |
+| Final Classification | Benign / Authorized Lab Simulation |
+
+The detection successfully identified a Registry Run Key modification associated with persistence behavior. Investigation confirmed that the activity was intentionally generated using Atomic Red Team in the controlled SOC laboratory.
+
+Although the activity was authorized, the persistence artifact should be cleaned up after testing to restore the endpoint to its original state.
+
+---
+
 ## Detection Logic
 
 This detection is based on persistence behavior rather than only process execution.
