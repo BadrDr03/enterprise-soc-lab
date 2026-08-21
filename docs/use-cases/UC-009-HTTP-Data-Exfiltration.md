@@ -505,8 +505,6 @@ Because `curl.exe` is a legitimate administrative utility, an alert does not aut
 
 ### Alert Evidence
 
-![UC-009 Alert Configuration](../../screenshots/detections/UC-009-alert-configuration.png)
-
 ![UC-009 Alert Created](../../screenshots/detections/UC-009-alert-created.png)
 
 ---
