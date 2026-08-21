@@ -352,6 +352,137 @@ The investigation demonstrated how broad process telemetry can be progressively 
 
 ---
 
+---
+
+## Splunk Detection Rule
+
+The validated SPL query was converted into a scheduled Splunk alert to automatically identify archive creation using the native Windows `tar.exe` utility.
+
+### Detection Query
+
+```spl
+index=windows host="target-pc" EventCode=1 Image="*\\tar.exe"
+CommandLine="*.zip*"
+| table _time ComputerName User ParentImage Image CommandLine
+| sort -_time
+```
+
+The detection focuses on process creation telemetry where `tar.exe` is used to create or manipulate ZIP archives.
+
+Because `tar.exe` is a legitimate Windows utility, detection of the process alone does not prove malicious activity. The command line, user, parent process, archive destination, source directory, and surrounding activity must be investigated before assigning a malicious verdict.
+
+### Alert Configuration
+
+| Setting | Value |
+|---|---|
+| Alert Name | `UC-008 - Archive Collected Data` |
+| Alert Type | Scheduled |
+| Schedule | Hourly, at 15 minutes past the hour |
+| Trigger Condition | Number of Results > 0 |
+| Trigger Action | Log Event |
+| Status | Enabled |
+
+### Alert Evidence
+
+![UC-008 Alert Configuration](../../screenshots/detections/UC-008-alert-configuration.png)
+
+![UC-008 Alert Created](../../screenshots/detections/UC-008-alert-created.png)
+
+The alert provides automated visibility into archive creation activity that could represent data collection or staging before exfiltration.
+
+---
+
+## Containment
+
+The archive creation observed during UC-008 was intentionally generated as part of the authorized SOC laboratory. Therefore, no emergency containment was required.
+
+If similar activity were confirmed as suspicious in a production environment, containment actions could include:
+
+- Isolating the affected endpoint if additional malicious behavior is identified.
+- Restricting the affected account if compromise is suspected.
+- Preventing suspicious archive files from being transferred outside the environment.
+- Preserving the archive and associated telemetry for forensic investigation.
+- Investigating processes executed before and after the archive creation.
+
+---
+
+## Eradication
+
+No malicious software or persistence mechanism was introduced during this controlled simulation.
+
+The generated test archive can be removed after the required evidence has been preserved.
+
+For confirmed malicious activity, eradication could include:
+
+- Removing unauthorized archive files.
+- Removing malicious scripts or tools responsible for data collection.
+- Identifying and removing persistence mechanisms associated with the attacker.
+- Searching other endpoints for similar archive creation behavior.
+- Removing additional staged data discovered during the investigation.
+
+---
+
+## Recovery
+
+No significant recovery action was required because the endpoint remained operational and uncompromised during the laboratory simulation.
+
+In a real incident, recovery could include:
+
+- Confirming that unauthorized archives and malicious artifacts have been removed.
+- Verifying that sensitive data is no longer staged for transfer.
+- Restoring affected accounts or services when necessary.
+- Confirming that Sysmon and Splunk telemetry remain operational.
+- Monitoring the endpoint for repeated collection, archive creation, or exfiltration activity.
+
+---
+
+## Post-Incident Activity
+
+### Lessons Learned
+
+- Archive utilities such as `tar.exe` are legitimate tools and should not automatically be classified as malicious.
+- Command-line arguments provide important context for distinguishing normal archive operations from suspicious data staging.
+- Parent process, user account, source directory, archive destination, and timestamp should be reviewed during investigation.
+- Sysmon Event ID 1 provides useful process creation telemetry for identifying archive creation.
+- Archive creation can represent a preparation stage before data exfiltration.
+- Detection rules should focus on behavior and context rather than only executable names.
+
+### Recommendations
+
+- Monitor archive creation involving unusual directories or sensitive data.
+- Investigate unexpected archive creation by privileged accounts.
+- Correlate archive creation with previous collection activity.
+- Correlate archive creation with subsequent network connections or file transfers.
+- Establish a baseline of legitimate archive operations.
+- Review and tune the Splunk detection rule to reduce false positives.
+
+---
+
+## Final Incident Classification
+
+| Field | Result |
+|---|---|
+| Detection | Successful |
+| Investigation | Completed |
+| MITRE ATT&CK | `T1560.001 - Archive Collected Data: Archive via Utility` |
+| Detection Rule | Enabled |
+| Process | `tar.exe` |
+| Source Directory | `C:\SOC-Lab\Collection` |
+| Archive | `C:\SOC-Lab\collection.zip` |
+| Containment | Not required – controlled simulation |
+| Eradication | Test archive may be removed after evidence collection |
+| Recovery | Not required – system unaffected |
+| Post-Incident Review | Completed |
+| Final Classification | Benign / Authorized Lab Simulation |
+
+The SOC investigation successfully identified archive creation activity through Sysmon process creation telemetry and Splunk.
+
+The command-line evidence showed that `tar.exe` was used to archive the contents of `C:\SOC-Lab\Collection` into `C:\SOC-Lab\collection.zip`.
+
+Although the activity was intentionally generated during the controlled SOC laboratory, similar archive creation in a production environment should be correlated with collection and network activity because it may represent data staging before exfiltration.
+
+---
+
 ## Conclusion
 
 UC-008 successfully demonstrated the detection and investigation of archive creation activity on the Windows 11 endpoint.
