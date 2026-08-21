@@ -336,7 +336,7 @@ The investigation demonstrated how broad process telemetry can be progressively 
 
 ---
 
-## 7. MITRE ATT&CK Mapping
+## 12. MITRE ATT&CK Mapping
 
 | Field | Value |
 |---|---|
@@ -354,7 +354,7 @@ The investigation demonstrated how broad process telemetry can be progressively 
 
 ---
 
-## Splunk Detection Rule
+## 13.Splunk Detection Rule
 
 The validated SPL query was converted into a scheduled Splunk alert to automatically identify archive creation using the native Windows `tar.exe` utility.
 
@@ -371,7 +371,7 @@ The detection focuses on process creation telemetry where `tar.exe` is used to c
 
 Because `tar.exe` is a legitimate Windows utility, detection of the process alone does not prove malicious activity. The command line, user, parent process, archive destination, source directory, and surrounding activity must be investigated before assigning a malicious verdict.
 
-### Alert Configuration
+### 14.Alert Configuration
 
 | Setting | Value |
 |---|---|
@@ -392,7 +392,7 @@ The alert provides automated visibility into archive creation activity that coul
 
 ---
 
-## Containment
+## 15.Containment
 
 The archive creation observed during UC-008 was intentionally generated as part of the authorized SOC laboratory. Therefore, no emergency containment was required.
 
@@ -406,7 +406,7 @@ If similar activity were confirmed as suspicious in a production environment, co
 
 ---
 
-## Eradication
+## 16.Eradication
 
 No malicious software or persistence mechanism was introduced during this controlled simulation.
 
@@ -422,7 +422,7 @@ For confirmed malicious activity, eradication could include:
 
 ---
 
-## Recovery
+## 17.Recovery
 
 No significant recovery action was required because the endpoint remained operational and uncompromised during the laboratory simulation.
 
@@ -436,7 +436,7 @@ In a real incident, recovery could include:
 
 ---
 
-## Post-Incident Activity
+## 18. Post-Incident Activity
 
 ### Lessons Learned
 
