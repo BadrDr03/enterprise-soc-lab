@@ -74,8 +74,7 @@ This reduced the volume of information and made it easier to identify the types 
 
 ### Detection Evidence — Security EventCode Triage
 
-![Security EventCode Triage](../../screenshots/detections/UC-007-security-eventcode-triage.png)
-
+![Security EventCode Triage](../../screenshots/detections/security-eventcode-triage.png)
 The expected failed authentication Event ID `4625` was not observed in the collected Security telemetry.
 
 Instead of assuming that no RDP activity occurred, the investigation pivoted to RDP-specific Windows event channels.
