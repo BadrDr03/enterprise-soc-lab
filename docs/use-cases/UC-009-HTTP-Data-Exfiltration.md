@@ -473,7 +473,152 @@ Understanding these visibility gaps is an important part of SOC monitoring and d
 
 ---
 
-## 14. Conclusion
+---
+
+## 14. Splunk Detection Rule
+
+The validated detection logic was converted into a scheduled Splunk alert to automatically identify HTTP file-transfer activity using the native Windows `curl.exe` utility.
+
+### Detection Query
+
+```spl
+index=windows host="target-pc" EventCode=1 Image="*\\curl.exe"
+(CommandLine="*-T*" OR CommandLine="*--upload-file*")
+| table _time ComputerName User ParentImage Image CommandLine
+| sort -_time
+```
+
+The rule focuses on `curl.exe` process creation containing file-upload arguments.
+
+Because `curl.exe` is a legitimate administrative utility, an alert does not automatically confirm malicious exfiltration. The analyst must investigate the transferred file, destination address, destination port, user, parent process, and surrounding endpoint activity.
+
+### Alert Configuration
+
+| Setting | Value |
+|---|---|
+| Alert Name | `UC-009 - HTTP Data Exfiltration` |
+| Alert Type | Scheduled |
+| Schedule | Hourly, at 15 minutes past the hour |
+| Trigger Condition | Number of Results > 0 |
+| Trigger Action | Log Event |
+| Status | Enabled |
+
+### Alert Evidence
+
+![UC-009 Alert Configuration](../../screenshots/detections/UC-009-alert-configuration.png)
+
+![UC-009 Alert Created](../../screenshots/detections/UC-009-alert-created.png)
+
+---
+
+## 15. Containment
+
+The HTTP transfer observed during UC-009 was intentionally generated inside the controlled SOC laboratory. Therefore, no containment action was required.
+
+If similar activity were confirmed as unauthorized in a production environment, containment actions could include:
+
+- Isolating the affected endpoint.
+- Blocking communication with the suspicious destination IP.
+- Restricting the affected user account if compromise is suspected.
+- Preventing additional outbound transfers from the endpoint.
+- Preserving the transferred file and relevant telemetry for investigation.
+
+---
+
+## 16. Eradication
+
+No malicious software or persistence mechanism was introduced during this controlled simulation.
+
+For confirmed malicious exfiltration activity, eradication could include:
+
+- Removing malicious scripts or tools responsible for the transfer.
+- Removing staged archives created for exfiltration.
+- Removing persistence mechanisms associated with the attacker.
+- Resetting compromised credentials when necessary.
+- Searching other endpoints for similar transfer activity.
+
+---
+
+## 17. Recovery
+
+No recovery action was required during the laboratory because the monitored endpoint remained operational and uncompromised.
+
+In a real incident, recovery could include:
+
+- Confirming that unauthorized transfer activity has stopped.
+- Verifying that the endpoint is clean before restoring normal connectivity.
+- Restoring affected user access after credential validation.
+- Confirming that Sysmon and Splunk telemetry remain operational.
+- Monitoring for repeated archive creation or outbound file-transfer activity.
+
+---
+
+## 18. Post-Incident Activity
+
+### Lessons Learned
+
+- Legitimate utilities such as `curl.exe` can be abused for data exfiltration.
+- Process names alone are insufficient to determine malicious intent.
+- Command-line arguments provide critical context during investigation.
+- Archive creation followed by an outbound transfer provides stronger evidence than either event analyzed independently.
+- Correlation between UC-008 and UC-009 demonstrates how separate endpoint events can form a meaningful attack sequence.
+- Missing network telemetry should be documented as a visibility limitation rather than ignored.
+
+### Recommendations
+
+- Monitor unusual use of `curl.exe` for file uploads.
+- Investigate transfers to unexpected internal or external destinations.
+- Correlate archive creation with subsequent outbound transfer activity.
+- Monitor privileged accounts performing unusual file transfers.
+- Improve Sysmon Event ID 3 collection to strengthen network visibility.
+- Tune the Splunk detection rule according to legitimate administrative usage.
+
+---
+
+## 19. Final Incident Classification
+
+| Field | Result |
+|---|---|
+| Detection | Successful |
+| Investigation | Completed |
+| MITRE ATT&CK | `T1048.003 - Exfiltration Over Unencrypted Non-C2 Protocol` |
+| Detection Rule | Enabled |
+| Source Host | `target-pc` |
+| Source IP | `10.0.10.20` |
+| Process | `curl.exe` |
+| Parent Process | `powershell.exe` |
+| Transferred File | `C:\SOC-Lab\collection.zip` |
+| Destination IP | `10.0.10.250` |
+| Destination Port | `8000` |
+| Protocol | HTTP |
+| Related Use Case | `UC-008 - Archive Collected Data` |
+| Containment | Not required – controlled simulation |
+| Eradication | Not required – no malicious artifact introduced |
+| Recovery | Not required – system unaffected |
+| Post-Incident Review | Completed |
+| Final Classification | Benign / Authorized Lab Simulation |
+
+The investigation successfully identified the execution of `curl.exe` used to transfer the archive previously created during UC-008 to the Kali Linux receiver.
+
+Correlation between UC-008 and UC-009 established the following sequence:
+
+```text
+Collection
+    ↓
+Archive Creation (UC-008)
+    ↓
+C:\SOC-Lab\collection.zip
+    ↓
+HTTP Transfer using curl.exe (UC-009)
+    ↓
+Kali Linux - 10.0.10.250:8000
+```
+
+Although this activity was intentionally generated during the controlled SOC laboratory, the same sequence in a production environment could represent data staging followed by exfiltration.
+
+---
+
+## 20. Conclusion
 
 UC-009 successfully demonstrated a controlled HTTP data exfiltration scenario inside the isolated SOC laboratory.
 
