@@ -301,6 +301,138 @@ The correlation allowed the activity to be reconstructed without relying on assu
 
 ---
 
+## Splunk Detection Rule
+
+The validated correlation logic was converted into a scheduled Splunk alert to automatically identify RDP activity on the monitored Windows endpoint.
+
+### Detection Query
+
+```spl
+index=windows host="target-pc"
+(EventCode=131 OR EventCode=1149)
+| table _time EventCode User Source_Network_Address Message
+| sort _time
+```
+
+The rule monitors two complementary RDP telemetry sources:
+
+- **Event ID 131** — identifies an incoming RDP network connection.
+- **Event ID 1149** — identifies successful RDP authentication.
+
+The presence of these events within the same RDP activity window provides evidence that a remote connection and successful authentication occurred.
+
+### Alert Configuration
+
+| Setting | Value |
+|---|---|
+| Alert Name | `UC-007 - RDP Lateral Movement Detection` |
+| Alert Type | Scheduled |
+| Schedule | Hourly, at 15 minutes past the hour |
+| Trigger Condition | Number of Results > 0 |
+| Trigger Action | Log Event |
+| Status | Enabled |
+
+### Alert Evidence
+
+![UC-007 Alert Configuration](../../screenshots/detections/UC-007-alert-configuration.png)
+
+![UC-007 Alert Created](../../screenshots/detections/UC-007-alert-created.png)
+
+The alert provides automated visibility into RDP activity. However, an alert does not automatically mean that lateral movement is malicious. The SOC analyst must validate the source host, destination host, account, timestamp, and surrounding activity.
+
+---
+
+## Containment
+
+The RDP connection observed during this use case was intentionally generated as part of the authorized SOC laboratory. Therefore, no containment action was required.
+
+If similar RDP activity were confirmed as unauthorized in a production environment, containment actions could include:
+
+- Isolating the affected destination endpoint.
+- Disabling or restricting the compromised user account.
+- Terminating active unauthorized RDP sessions.
+- Temporarily restricting RDP access from the identified source system.
+- Preserving authentication and RDP telemetry for further investigation.
+- Investigating the source system for evidence of compromise.
+
+---
+
+## Eradication
+
+No malicious artifact or persistence mechanism was introduced during this controlled RDP simulation, therefore no eradication action was required.
+
+For confirmed malicious lateral movement, eradication could include:
+
+- Removing malicious tools or scripts used before or after the RDP connection.
+- Removing persistence mechanisms discovered on the source or destination endpoint.
+- Resetting credentials associated with compromised accounts.
+- Investigating whether the same credentials were used on additional systems.
+- Removing unauthorized accounts or configuration changes if discovered.
+
+---
+
+## Recovery
+
+No recovery action was required during the laboratory because both systems remained operational and the RDP activity was authorized.
+
+In a real incident, recovery could include:
+
+- Confirming that both the source and destination endpoints are clean.
+- Resetting compromised credentials before restoring account access.
+- Restoring legitimate RDP access after security validation.
+- Confirming that RDP and authentication logging remain operational.
+- Verifying that Splunk continues receiving the required telemetry.
+- Monitoring the affected systems for additional remote-access activity.
+
+---
+
+## Post-Incident Activity
+
+### Lessons Learned
+
+- RDP activity should not automatically be classified as malicious.
+- Event ID 131 provides evidence of an incoming RDP connection.
+- Event ID 1149 provides evidence of successful RDP authentication.
+- Correlating multiple telemetry sources provides stronger evidence than analyzing a single event.
+- Source IP, destination host, user account, timestamp, and surrounding activity are essential investigation elements.
+- Legitimate administrative RDP activity and malicious lateral movement can generate similar telemetry.
+- Missing expected Windows Security events can reveal visibility limitations in the monitoring environment.
+
+### Recommendations
+
+- Monitor RDP connections between internal systems.
+- Establish a baseline of legitimate administrative RDP activity.
+- Investigate RDP sessions originating from unusual endpoints.
+- Monitor privileged accounts used for remote authentication.
+- Correlate RDP activity with credential access, PowerShell, process creation, and authentication telemetry.
+- Improve Windows Security log collection to provide additional authentication visibility.
+- Review and tune the Splunk detection rule to reduce legitimate administrative false positives.
+
+---
+
+## Final Incident Classification
+
+| Field | Result |
+|---|---|
+| Detection | Successful |
+| Investigation | Completed |
+| MITRE ATT&CK | `T1021.001 - Remote Services: Remote Desktop Protocol` |
+| Detection Rule | Enabled |
+| Source | `ADDC - 10.0.10.7` |
+| Destination | `target-pc - 10.0.10.20` |
+| Account | `BADR\Administrator` |
+| Containment | Not required – controlled simulation |
+| Eradication | Not required – no malicious artifact identified |
+| Recovery | Not required – systems unaffected |
+| Post-Incident Review | Completed |
+| Final Classification | Benign / Authorized Lab Simulation |
+
+The investigation successfully correlated an incoming RDP connection from `10.0.10.7` with successful authentication using the `Administrator` account on `target-pc`.
+
+The activity was intentionally generated as part of the controlled SOC laboratory. In a production environment, the same telemetry would require contextual investigation before determining whether the RDP session represents legitimate administration or malicious lateral movement.
+
+---
+
 ## Analyst Conclusion
 
 The investigation identified Remote Desktop activity originating from the ADDC server (`10.0.10.7`) and targeting the Windows 11 workstation (`10.0.10.20`).
