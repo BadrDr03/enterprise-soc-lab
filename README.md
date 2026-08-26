@@ -1,39 +1,54 @@
 # Enterprise SOC Lab
 
 ### Detection, Threat Hunting, and Incident Response using Splunk SIEM
+
 Enterprise-grade Security Operations Center laboratory built for learning Detection Engineering, Threat Hunting, and Incident Response.
 
 ---
 
-## Project Description
+## 1. Project Description
 
 Enterprise SOC Lab is a practical cybersecurity project designed to simulate the daily operations of a Security Operations Center (SOC).
 
 The laboratory recreates a small enterprise environment composed of an Active Directory Domain Controller, a Windows 11 workstation, a Kali Linux attacker machine, and a centralized Splunk SIEM server.
 
-The project demonstrates the complete SOC lifecycle, including log collection, endpoint telemetry, attack simulation, detection engineering, threat hunting, threat intelligence enrichment, incident investigation, and technical documentation.
+The project demonstrates the complete SOC lifecycle, including log collection, endpoint telemetry, controlled attack simulation, detection engineering, threat hunting, threat intelligence enrichment, incident investigation, and technical documentation.
 
 Rather than focusing solely on tool installation, the project emphasizes understanding how modern SOC teams detect, analyze, investigate, and respond to cyber threats in a controlled enterprise environment.
 
 ---
 
-## Network Architecture
+## 2. Network Architecture
 
-The lab simulates a small enterprise environment deployed on a VirtualBox NAT Network (`10.0.10.0/24`). It includes a centralized Splunk SIEM server, an Active Directory Domain Controller, a Windows 11 target endpoint, and a Kali Linux attacker machine.
+The lab simulates a small enterprise environment deployed on a VirtualBox NAT Network (`10.0.10.0/24`).
 
-Windows endpoint telemetry is generated through Sysmon and forwarded to Splunk using the Splunk Universal Forwarder. Kali Linux and Atomic Red Team are used to generate controlled attack activity, while external Threat Intelligence services enrich suspicious indicators during investigations.
+It includes:
+
+- a centralized Splunk SIEM server;
+- an Active Directory Domain Controller;
+- a Windows 11 target endpoint;
+- a Kali Linux attack simulation machine.
+
+Windows endpoint telemetry is generated through Sysmon and forwarded to Splunk using the Splunk Universal Forwarder.
+
+Kali Linux and Atomic Red Team are used to generate controlled security testing activity, while external Threat Intelligence services enrich public IP indicators during investigations.
 
 ![Enterprise SOC Lab Network Architecture](docs/architecture/network-diagram.png)
 
-*Figure 1 — Enterprise SOC Lab network architecture and security data flow.*
+**Figure 1 — Enterprise SOC Lab network architecture and security data flow.**
+
+Detailed architecture documentation is available in:
+
+[`docs/architecture/architecture.md`](docs/architecture/architecture.md)
+
 ---
 
-##  Project Scope
+## 3. Project Scope
 
 ### Included
 
 | Component | Status |
-| :--- | :---: |
+|---|---|
 | Splunk SIEM | ✅ |
 | Windows Event Logs | ✅ |
 | Sysmon | ✅ |
@@ -47,12 +62,10 @@ Windows endpoint telemetry is generated through Sysmon and forwarded to Splunk u
 | Dashboards | ✅ |
 | Documentation | ✅ |
 
----
-
 ### Excluded
 
 | Component | Reason |
-| :--- | :--- |
+|---|---|
 | Docker | Outside project scope |
 | SOAR | Outside project scope |
 | Kubernetes | Outside project scope |
@@ -63,19 +76,20 @@ Windows endpoint telemetry is generated through Sysmon and forwarded to Splunk u
 
 ---
 
-## Project Objectives
+## 4. Project Objectives
 
 - Design a realistic enterprise SOC laboratory.
 - Centralize endpoint telemetry using Splunk SIEM.
 - Monitor Windows security events and Sysmon telemetry.
-- Develop custom detection rules for multiple attack scenarios.
-- Simulate attacks using Atomic Red Team and Kali Linux.
+- Develop detection logic for multiple attack scenarios.
+- Generate controlled security events using Atomic Red Team and Kali Linux.
 - Perform threat hunting activities using Splunk SPL.
 - Investigate security incidents using SOC methodologies.
 - Apply the Five Whys technique for root cause analysis.
+- Integrate automated Threat Intelligence enrichment.
+- Build centralized SOC monitoring dashboards.
+- Apply an incident response methodology to detected activity.
 - Produce professional technical documentation and incident reports.
-
----
 
 ---
 
@@ -88,23 +102,23 @@ The SOC laboratory combines endpoint telemetry, centralized log analysis, attack
 | SIEM | Splunk Free | Centralized log collection, searching, detection, alerting, and dashboards |
 | Endpoint Telemetry | Sysmon | Detailed Windows process, network, registry, and system activity |
 | Log Forwarding | Splunk Universal Forwarder | Forwards Windows telemetry to the Splunk server |
-| Endpoint | Windows 11 | Primary monitored workstation and attack simulation target |
+| Endpoint | Windows 11 | Primary monitored workstation and simulation target |
 | Identity Infrastructure | Windows Active Directory Domain Controller | Authentication and domain-related telemetry |
-| SIEM Server | Ubuntu Server | Hosts the Splunk instance and Threat Intelligence automation |
-| Attack Machine | Kali Linux | Used for controlled attack simulations |
-| Attack Simulation | Atomic Red Team | Generates ATT&CK-aligned endpoint activity |
+| SIEM Server | Ubuntu Server | Hosts Splunk and Threat Intelligence automation |
+| Attack Simulation Machine | Kali Linux | Controlled security testing environment |
+| Attack Simulation | Atomic Red Team | Generates ATT&CK-aligned security telemetry |
 | Threat Intelligence | VirusTotal | IP reputation and malicious indicator enrichment |
 | Threat Intelligence | AbuseIPDB | IP abuse reputation and reporting information |
 | Threat Intelligence | AlienVault OTX | Threat intelligence pulse and ASN context |
 | Automation | Python | Automated Threat Intelligence collection and enrichment |
 | Scheduling | Cron | Periodic execution of the enrichment workflow |
-| Framework | MITRE ATT&CK | Mapping attack simulations and detection scenarios |
+| Framework | MITRE ATT&CK | Mapping simulations and detection scenarios |
 
 ---
 
 ## 6. Repository Structure
 
-The repository separates architecture documentation, detection use cases, incident response reports, evidence, automation scripts, and Splunk-related content.
+The repository separates architecture documentation, detection use cases, incident response reports, evidence, automation scripts, and Splunk dashboard documentation.
 
 ```text
 enterprise-soc-lab/
@@ -127,6 +141,7 @@ enterprise-soc-lab/
 │   │   └── UC-009-HTTP-Data-Exfiltration.md
 │   │
 │   └── incident-reports/
+│       ├── README.md
 │       ├── IR-001-Suspicious-PowerShell.md
 │       ├── IR-002-Encoded-PowerShell.md
 │       ├── IR-003-System-Information-Discovery.md
@@ -145,6 +160,7 @@ enterprise-soc-lab/
 │
 ├── scripts/
 │   └── threat-intel/
+│       ├── README.md
 │       ├── virustotal_lookup.py
 │       ├── abuseipdb_lookup.py
 │       ├── otx_lookup.py
@@ -153,6 +169,7 @@ enterprise-soc-lab/
 │
 └── splunk/
     └── dashboards/
+        └── README.md
 ```
 
 Detailed SPL searches and detection logic are documented directly inside the corresponding use-case files to avoid duplicating detection content across the repository.
@@ -195,7 +212,7 @@ Each detection scenario is complemented by an incident response report describin
 | [IR-008](docs/incident-reports/IR-008-Archive-Collected-Data.md) | Archive Collected Data | High |
 | [IR-009](docs/incident-reports/IR-009-HTTP-Data-Exfiltration.md) | HTTP Data Exfiltration | Critical |
 
-The reports use the PICERL lifecycle:
+The reports follow the PICERL lifecycle:
 
 ```text
 Preparation
@@ -213,6 +230,10 @@ Lessons Learned
 
 This extends the laboratory from detection engineering into SOC investigation and incident response.
 
+Detailed incident response documentation is available in:
+
+[`docs/incident-reports/README.md`](docs/incident-reports/README.md)
+
 ---
 
 ## 9. Automated Threat Intelligence Enrichment
@@ -225,7 +246,7 @@ Three external intelligence sources are used:
 - AbuseIPDB
 - AlienVault OTX
 
-The enrichment pipeline operates as follows:
+### Enrichment Pipeline
 
 ```text
 Windows Network Events
@@ -271,16 +292,16 @@ A centralized Splunk dashboard was developed to provide a high-level view of act
 
 The dashboard includes visibility into:
 
-- security events over time;
-- events by monitored host;
-- Sysmon event distribution;
-- authentication activity;
-- RDP activity;
-- external destination IP addresses;
-- Threat Intelligence enrichment;
-- PowerShell activity;
-- detection alerts;
-- network connections by process.
+1. Security Events Over Time
+2. Events by Host
+3. Sysmon Event Distribution
+4. Authentication Activity
+5. RDP Activity
+6. Top External Destination IPs
+7. Threat Intelligence Overview
+8. PowerShell Activity
+9. Detection Alerts Activity
+10. Network Connections by Process
 
 The dashboard combines operational monitoring and investigation context in a single SOC interface.
 
@@ -288,11 +309,13 @@ The dashboard combines operational monitoring and investigation context in a sin
 
 Different time ranges are intentionally used depending on the purpose of each panel.
 
-Operational panels can focus on recent activity such as the last 24 hours, allowing an analyst to quickly identify current changes or suspicious behavior.
+The **Security Events Over Time** panel uses a recent monitoring window such as the last 24 hours because its purpose is to provide operational visibility into recent activity and event-volume changes.
 
-Historical or context-oriented panels can use broader time ranges when previous laboratory events remain relevant to the investigation.
+Several investigation and laboratory-history panels use **All time** because the controlled simulations were executed at different moments and their historical telemetry remains useful for validation and investigation.
 
-This design demonstrates the difference between **real-time SOC monitoring** and **historical investigation**.
+The **Threat Intelligence Overview** reads the current content of the `threat_intel.csv` lookup and therefore does not depend on a traditional Splunk event time range.
+
+In a production SOC environment, these time windows would normally be adjusted according to operational requirements.
 
 ### Dashboard Evidence
 
@@ -302,6 +325,10 @@ This design demonstrates the difference between **real-time SOC monitoring** and
 
 ![SOC Security Overview - Part 3](screenshots/dashboards/dashboard-soc-overview-03.png)
 
+Detailed dashboard documentation is available in:
+
+[`splunk/dashboards/README.md`](splunk/dashboards/README.md)
+
 ---
 
 ## 11. Detection and Investigation Workflow
@@ -309,11 +336,11 @@ This design demonstrates the difference between **real-time SOC monitoring** and
 The laboratory demonstrates an end-to-end SOC workflow rather than isolated attack simulations.
 
 ```text
-Attack Simulation
+Controlled Attack Simulation
         ↓
 Windows Endpoint
         ↓
-Sysmon Telemetry
+Sysmon / Windows Event Telemetry
         ↓
 Splunk Universal Forwarder
         ↓
@@ -350,7 +377,7 @@ The completed laboratory demonstrates:
 - automated public IP Threat Intelligence enrichment;
 - integration of VirusTotal, AbuseIPDB, and AlienVault OTX;
 - automated enrichment execution using Python and cron;
-- centralized SOC monitoring through a Splunk dashboard;
+- centralized SOC monitoring through a ten-panel Splunk dashboard;
 - nine incident response reports based on detected activity;
 - structured technical evidence through screenshots and documentation.
 
@@ -378,8 +405,9 @@ The main limitations include:
 
 - Splunk Free ingestion and feature limitations;
 - a small number of monitored endpoints;
-- controlled attack simulations rather than real adversary activity;
+- controlled security simulations rather than real adversary activity;
 - external Threat Intelligence results dependent on public API availability and rate limits;
+- periodic rather than real-time Threat Intelligence enrichment;
 - no production endpoint isolation or automated remediation;
 - no high-availability SIEM architecture.
 
@@ -388,8 +416,6 @@ These limitations were accepted because the objective of the project is to demon
 ---
 
 ## 14. Documentation Navigation
-
-For detailed technical documentation, use the following sections:
 
 ### Architecture
 
@@ -415,6 +441,12 @@ SOC analyst response documentation for IR-001 through IR-009.
 
 Python-based Threat Intelligence enrichment and automation.
 
+### SOC Dashboard
+
+[`splunk/dashboards/`](splunk/dashboards/)
+
+Splunk SOC Security Overview dashboard implementation and panel documentation.
+
 ### Dashboard Evidence
 
 [`screenshots/dashboards/`](screenshots/dashboards/)
@@ -426,6 +458,12 @@ Screenshots of the SOC Security Overview dashboard.
 [`screenshots/detections/`](screenshots/detections/)
 
 Evidence collected during attack simulation, detection validation, and alert configuration.
+
+### Threat Intelligence Evidence
+
+[`screenshots/threat-intelligence/`](screenshots/threat-intelligence/)
+
+Evidence of Threat Intelligence API integration, enrichment, lookup configuration, and automation.
 
 ### Infrastructure Evidence
 
@@ -441,6 +479,24 @@ Evidence related to Splunk, Sysmon, Universal Forwarder, and laboratory infrastr
 
 The environment implements an end-to-end workflow covering:
 
-**Architecture → Telemetry Collection → Attack Simulation → Detection → Alerting → Investigation → Threat Intelligence → Dashboarding → Incident Response**
+```text
+Architecture
+    ↓
+Telemetry Collection
+    ↓
+Controlled Attack Simulation
+    ↓
+Detection
+    ↓
+Alerting
+    ↓
+Investigation
+    ↓
+Threat Intelligence
+    ↓
+Dashboarding
+    ↓
+Incident Response
+```
 
-The laboratory serves as a practical demonstration of SOC Level 1 investigation, detection engineering fundamentals, SIEM administration, Threat Intelligence integration, and incident response documentation.
+The laboratory serves as a practical demonstration of SOC Level 1 investigation, detection engineering fundamentals, SIEM administration, Threat Intelligence integration, automation, and incident response documentation.
