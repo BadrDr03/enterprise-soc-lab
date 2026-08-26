@@ -1,7 +1,9 @@
 # Enterprise SOC Lab
 
 ### Detection, Threat Hunting, and Incident Response using Splunk SIEM
-Enterprise-grade Security Operations Center laboratory built for learning Detection Engineering, Threat Hunting, and Incident Response.---
+Enterprise-grade Security Operations Center laboratory built for learning Detection Engineering, Threat Hunting, and Incident Response.
+
+---
 
 ## Project Description
 
