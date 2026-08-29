@@ -46,7 +46,7 @@ The laboratory uses a dedicated VirtualBox NAT Network:
 **Domain:** `badr.local`  
 **DNS Server:** `10.0.10.7`
 
-![SOC Lab Network Architecture](../../screenshots/architecture/network-architecture.png)
+![SOC Lab Network Architecture](../../screenshots/architecture/network-diagram.png)
 
 > The architecture diagram represents the logical organization of the validation laboratory. The exact image path may be adjusted according to the repository screenshot structure.
 
